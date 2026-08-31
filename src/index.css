@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0c0c0e;
+  --surface: #141417;
+  --surface-raised: #1c1c21;
+  --ink: #f2f2f2;
+  --ink-dim: rgba(242, 242, 242, 0.5);
+  --accent: #ff6b00; /* Athletic Blaze Orange */
+  --accent-hover: #e65e00;
+  --accent-ink: #ffffff;
+  --border: rgba(242, 242, 242, 0.1);
+  --border-subtle: rgba(242, 242, 242, 0.06);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography Utility Classes */
+.font-display {
+  font-family: 'Syne', sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom Selection */
+::selection {
+  background: #ff6b00;
+  color: #ffffff;
+}
+
+/* High Performance Sliders */
+input[type="range"].accent-orange,
+input[type="range"].accent-lime {
+  accent-color: #ff6b00;
+}
+
+/* Custom subtle scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0c0c0e;
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #26262b;
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #383842;
+}
+

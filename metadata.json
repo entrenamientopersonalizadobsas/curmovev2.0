@@ -1,0 +1,6 @@
+{
+  "name": "CURMOVE - Plataforma de Entrenamiento",
+  "description": "Aplicación de planificación y seguimiento de rutinas con Visión Entrenador y Visión Alumno, series, RIR, RPE, antropometría, videos y dashboard de volumen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
