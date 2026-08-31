@@ -231,13 +231,6 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
-              {/* Demo Hint */}
-              <div className="pt-1 text-center">
-                <p className="text-[11px] text-[rgba(242,242,242,0.4)]">
-                  Clave inicial de demo para alumnos: <code className="text-[#ff6b00] font-mono font-bold">1234</code>
-                </p>
-              </div>
-
             </form>
           )}
 
@@ -312,13 +305,6 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 <span>ACCEDER AL PANEL DE ENTRENADOR</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-
-              {/* Demo Hint */}
-              <div className="pt-1 text-center">
-                <p className="text-[11px] text-[rgba(242,242,242,0.4)]">
-                  Clave demo coach: <code className="text-[#ff6b00] font-mono font-bold">coach123</code> o <code className="text-[#ff6b00] font-mono font-bold">1234</code>
-                </p>
-              </div>
 
             </form>
           )}

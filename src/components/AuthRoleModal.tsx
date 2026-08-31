@@ -58,7 +58,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
       onClose();
       setStep('select');
     } else {
-      setAuthError('Contraseña de entrenador incorrecta (Prueba: coach123 o 1234)');
+      setAuthError('Contraseña de entrenador incorrecta.');
     }
   };
 
@@ -85,7 +85,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
       onClose();
       setStep('select');
     } else {
-      setAuthError(`Contraseña incorrecta para ${selectedStudentTarget.fullName}. (Demo: 1234)`);
+      setAuthError(`Contraseña incorrecta para ${selectedStudentTarget.fullName}.`);
     }
   };
 
@@ -264,10 +264,6 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                     <span>{authError}</span>
                   </div>
                 )}
-                
-                <p className="text-[10px] text-[rgba(242,242,242,0.5)] text-center font-mono-code">
-                  Clave demo coach: <span className="text-[#ff6b00] font-bold">coach123</span>
-                </p>
               </div>
 
               <div className="flex gap-2">
@@ -335,10 +331,6 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                     <span>{authError}</span>
                   </div>
                 )}
-
-                <p className="text-[10px] text-[rgba(242,242,242,0.5)] text-center font-mono-code">
-                  Clave demo del alumno: <span className="text-[#ff6b00] font-bold">{selectedStudentTarget.password || '1234'}</span>
-                </p>
               </div>
 
               <div className="flex gap-2">

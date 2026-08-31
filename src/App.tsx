@@ -113,7 +113,7 @@ export default function App() {
   const [isAnthropometryOpen, setIsAnthropometryOpen] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(true);
   const [isSaveSessionOpen, setIsSaveSessionOpen] = useState<boolean>(false);
 
   // Floating Rest Timer
