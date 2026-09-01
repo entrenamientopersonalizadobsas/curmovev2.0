@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ViewMode, StudentProfile } from '../types';
+import { signInWithPassword, signUpWithPassword, supabase } from '../lib/supabase';
 import { 
   ShieldCheck, 
   User, 
@@ -41,6 +42,9 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingCoach, setIsCreatingCoach] = useState(false);
 
   if (!isOpen) return null;
 
@@ -51,15 +55,28 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
     setAuthError(null);
   };
 
-  const handleVerifyCoach = (e: React.FormEvent) => {
+  const handleVerifyCoach = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput.trim() === 'coach123' || passwordInput.trim() === '1234') {
+    setAuthError(null);
+    setIsSubmitting(true);
+    try {
+      if (!supabase || !emailInput.trim()) throw new Error('Ingresá el email del coach.');
+      const { error } = await (isCreatingCoach
+        ? signUpWithPassword(emailInput.trim(), passwordInput)
+        : signInWithPassword(emailInput.trim(), passwordInput));
+      if (error) throw error;
+      if (isCreatingCoach) {
+        setAuthError('Cuenta creada. Confirmá tu email y luego ingresá.');
+        setIsCreatingCoach(false);
+        return;
+      }
       onSelectRole('trainer');
       onClose();
       setStep('select');
-    } else {
-      setAuthError('Contraseña de entrenador incorrecta.');
-    }
+    } catch (error) {
+      console.error('[v0] Error de login coach:', error);
+      setAuthError(error instanceof Error && error.message === 'Ingresá el email del coach.' ? error.message : 'Email o contraseña incorrectos.');
+    } finally { setIsSubmitting(false); }
   };
 
   const handleStartStudentAuth = (student: StudentProfile) => {
@@ -75,18 +92,22 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
     setAuthError(null);
   };
 
-  const handleVerifyStudent = (e: React.FormEvent) => {
+  const handleVerifyStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentTarget) return;
-
-    const correctPassword = selectedStudentTarget.password || '1234';
-    if (passwordInput.trim() === correctPassword.trim()) {
+    setAuthError(null);
+    setIsSubmitting(true);
+    try {
+      if (!supabase) throw new Error('Supabase no está configurado.');
+      const { error } = await signInWithPassword(selectedStudentTarget.email, passwordInput);
+      if (error) throw error;
       onSelectRole('student', selectedStudentTarget.id);
       onClose();
       setStep('select');
-    } else {
-      setAuthError(`Contraseña incorrecta para ${selectedStudentTarget.fullName}.`);
-    }
+    } catch (error) {
+      console.error('[v0] Error de login alumno:', error);
+      setAuthError('Email o contraseña incorrectos. Verificá que tu cuenta esté confirmada.');
+    } finally { setIsSubmitting(false); }
   };
 
   return (
@@ -236,6 +257,14 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
               </div>
 
               <div className="space-y-2">
+                <input
+                  type="email"
+                  required
+                  placeholder="Email del coach"
+                  value={emailInput}
+                  onChange={(e) => { setEmailInput(e.target.value); setAuthError(null); }}
+                  className="w-full p-2.5 bg-[#141417] border border-[rgba(242,242,242,0.1)] rounded-xl text-xs text-[#f2f2f2] focus:outline-none focus:border-[#ff6b00]"
+                />
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -279,7 +308,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                   type="submit"
                   className="flex-1 py-2 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
-                  Validar Acceso
+                  {isCreatingCoach ? 'Crear cuenta' : 'Validar Acceso'}
                 </button>
               </div>
             </form>
