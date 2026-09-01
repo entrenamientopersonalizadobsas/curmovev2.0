@@ -55,15 +55,18 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
     setAuthError(null);
   };
 
-  const handleVerifyCoach = async (e: React.FormEvent) => {
+  const handleVerifyCoach = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAuthError(null);
     setIsSubmitting(true);
     try {
-      if (!supabase || !emailInput.trim()) throw new Error('Ingresá el email del coach.');
+      const formData = new FormData(e.currentTarget);
+      const submittedEmail = String(formData.get('coach-email') || emailInput).trim();
+      const submittedPassword = String(formData.get('coach-password') || passwordInput);
+      if (!supabase || !submittedEmail) throw new Error('Ingresá el email del coach.');
       const { error } = await (isCreatingCoach
-        ? signUpWithPassword(emailInput.trim(), passwordInput)
-        : signInWithPassword(emailInput.trim(), passwordInput));
+        ? signUpWithPassword(submittedEmail, submittedPassword)
+        : signInWithPassword(submittedEmail, submittedPassword));
       if (error) throw error;
       if (isCreatingCoach) {
         setAuthError('Cuenta creada. Confirmá tu email y luego ingresá.');
@@ -259,6 +262,8 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
               <div className="space-y-2">
                 <input
                   type="email"
+                  name="coach-email"
+                  autoComplete="email"
                   required
                   placeholder="Email del coach"
                   value={emailInput}
@@ -268,6 +273,8 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="coach-password"
+                    autoComplete="current-password"
                     autoFocus
                     placeholder="Contraseña de entrenador"
                     value={passwordInput}
