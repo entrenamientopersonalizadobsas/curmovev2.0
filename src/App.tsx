@@ -35,6 +35,8 @@ import { AuthRoleModal } from './components/AuthRoleModal';
 import { RestTimerFloating } from './components/RestTimerFloating';
 import { SaveSessionModal } from './components/SaveSessionModal';
 import { exportRoutineToHTML } from './utils/exportHtml';
+import { supabase } from './lib/supabase';
+import { saveAnthropometry, saveReadiness, saveWorkout } from './lib/trainingPersistence';
 
 export default function App() {
   // Load students from localStorage or initialize with mockData
@@ -115,6 +117,16 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(true);
   const [isSaveSessionOpen, setIsSaveSessionOpen] = useState<boolean>(false);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUserId(session?.user?.id ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   // Floating Rest Timer
   const [restTimerSeconds, setRestTimerSeconds] = useState<number>(90);
@@ -199,7 +211,10 @@ export default function App() {
   };
 
   // Handler: save readiness logs (Energy, Fatigue, Soreness, Sleep, Mood, Notes)
-  const handleSaveReadiness = (date: string, data: DailyReadiness) => {
+  const handleSaveReadiness = async (date: string, data: DailyReadiness) => {
+    if (authUserId) {
+      try { await saveReadiness(authUserId, data); } catch (error) { console.error('[v0] Error guardando readiness:', error); }
+    }
     setStudents((prev) =>
       prev.map((st) => {
         if (st.id === activeStudent.id) {
@@ -217,7 +232,7 @@ export default function App() {
   };
 
   // Handler: Confirm and Save Workout Session (Autocompletes to Dashboard & saves energy)
-  const handleConfirmSaveSession = ({
+  const handleConfirmSaveSession = async ({
     workout,
     energyLevel,
     sessionRpe,
@@ -278,6 +293,15 @@ export default function App() {
         : (existingReadiness?.notes || 'Sesión guardada y registrada con éxito.')
     };
 
+    if (authUserId) {
+      try {
+        await saveWorkout(authUserId, completedWorkout);
+        await saveReadiness(authUserId, updatedReadiness);
+      } catch (error) {
+        console.error('[v0] Error guardando sesión:', error);
+      }
+    }
+
     // 3. Update student state
     setStudents((prev) =>
       prev.map((st) => {
@@ -300,7 +324,10 @@ export default function App() {
   };
 
   // Handler: add anthropometry evaluation
-  const handleAddAnthropometryRecord = (record: AnthropometryRecord) => {
+  const handleAddAnthropometryRecord = async (record: AnthropometryRecord) => {
+    if (authUserId) {
+      try { await saveAnthropometry(authUserId, record); } catch (error) { console.error('[v0] Error guardando antropometría:', error); }
+    }
     setStudents((prev) =>
       prev.map((st) => {
         if (st.id === activeStudent.id) {
