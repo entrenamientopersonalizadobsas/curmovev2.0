@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { AnthropometryRecord, DailyReadiness, DailyWorkout } from '../types'
+import type { AnthropometryRecord, DailyReadiness, DailyWorkout, StudentProfile } from '../types'
 
 export async function saveReadiness(userId: string, data: DailyReadiness) {
   if (!supabase) return
@@ -59,6 +59,29 @@ export async function saveWorkout(userId: string, workout: DailyWorkout) {
     const { error } = await supabase.from('cardio_sessions').upsert(cardio, { onConflict: 'session_id,cardio_key' })
     if (error) throw error
   }
+}
+
+export async function saveCoachStudent(coachUserId: string, student: StudentProfile) {
+  if (!supabase) return
+  const { error } = await supabase.from('coach_students').upsert({
+    id: student.id.startsWith('student-') ? undefined : student.id,
+    coach_user_id: coachUserId,
+    full_name: student.fullName,
+    email: student.email,
+    access_password: student.password || '1234',
+    avatar_url: student.avatarUrl,
+    age: student.age,
+    height_cm: student.heightCm,
+    current_weight_kg: student.currentWeightKg,
+    goal: student.goal,
+    level: student.level,
+    target_days_per_week: student.targetDaysPerWeek,
+    injuries_or_notes: student.injuriesOrNotes,
+    start_date: student.startDate,
+    app_data: { anthropometryHistory: student.anthropometryHistory, readinessLogs: student.readinessLogs, workouts: student.workouts },
+  }).select('id').single()
+  if (error) throw error
+  return error
 }
 
 export async function saveAnthropometry(userId: string, record: AnthropometryRecord) {

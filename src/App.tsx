@@ -36,7 +36,7 @@ import { RestTimerFloating } from './components/RestTimerFloating';
 import { SaveSessionModal } from './components/SaveSessionModal';
 import { exportRoutineToHTML } from './utils/exportHtml';
 import { supabase } from './lib/supabase';
-import { saveAnthropometry, saveReadiness, saveWorkout } from './lib/trainingPersistence';
+import { saveAnthropometry, saveCoachStudent, saveReadiness, saveWorkout } from './lib/trainingPersistence';
 
 export default function App() {
   // Load students from localStorage or initialize with mockData
@@ -350,8 +350,17 @@ export default function App() {
   };
 
   // Handler: add new student
-  const handleAddStudent = (newStudent: StudentProfile) => {
-    setStudents((prev) => [...prev, newStudent]);
+  const handleAddStudent = async (newStudent: StudentProfile) => {
+    if (authUserId && supabase) {
+      try {
+        await saveCoachStudent(authUserId, newStudent);
+      } catch (error) {
+        console.error('[v0] Error guardando alumno:', error);
+      }
+    }
+    setStudents((prev) => prev.some((student) => student.id === newStudent.id)
+      ? prev.map((student) => student.id === newStudent.id ? newStudent : student)
+      : [...prev, newStudent]);
     setActiveStudentId(newStudent.id);
   };
 
