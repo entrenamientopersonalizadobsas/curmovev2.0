@@ -63,7 +63,8 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
       const formData = new FormData(e.currentTarget);
       const submittedEmail = String(formData.get('coach-email') || emailInput).trim();
       const submittedPassword = String(formData.get('coach-password') || passwordInput);
-      if (!supabase || !submittedEmail) throw new Error('Ingresá el email del coach.');
+      if (!supabase) throw new Error('La conexión con Supabase no está disponible. Recargá la página.');
+      if (!submittedEmail) throw new Error('Ingresá el email del coach.');
       const { error } = await (isCreatingCoach
         ? signUpWithPassword(submittedEmail, submittedPassword)
         : signInWithPassword(submittedEmail, submittedPassword));
@@ -78,7 +79,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
       setStep('select');
     } catch (error) {
       console.error('[v0] Error de login coach:', error);
-      setAuthError(error instanceof Error && error.message === 'Ingresá el email del coach.' ? error.message : 'Email o contraseña incorrectos.');
+      setAuthError(error instanceof Error && (error.message === 'Ingresá el email del coach.' || error.message === 'La conexión con Supabase no está disponible. Recargá la página.') ? error.message : 'Email o contraseña incorrectos.');
     } finally { setIsSubmitting(false); }
   };
 
