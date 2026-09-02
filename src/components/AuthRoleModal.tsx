@@ -96,14 +96,17 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
     setAuthError(null);
   };
 
-  const handleVerifyStudent = async (e: React.FormEvent) => {
+  const handleVerifyStudent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedStudentTarget) return;
     setAuthError(null);
     setIsSubmitting(true);
     try {
+      const formData = new FormData(e.currentTarget);
+      const submittedEmail = String(formData.get('student-email') || selectedStudentTarget.email).trim();
+      const submittedPassword = String(formData.get('student-password') || passwordInput);
       if (!supabase) throw new Error('Supabase no está configurado.');
-      const { error } = await signInWithPassword(selectedStudentTarget.email, passwordInput);
+      const { error } = await signInWithPassword(submittedEmail, submittedPassword);
       if (error) throw error;
       onSelectRole('student', selectedStudentTarget.id);
       onClose();
@@ -316,7 +319,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                   type="submit"
                   className="flex-1 py-2 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
-                  {isCreatingCoach ? 'Crear cuenta' : 'Validar Acceso'}
+                  {isSubmitting ? 'Ingresando...' : (isCreatingCoach ? 'Crear cuenta' : 'Validar Acceso')}
                 </button>
               </div>
             </form>
@@ -340,9 +343,20 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
               </div>
 
               <div className="space-y-2">
+                <input
+                  type="email"
+                  name="student-email"
+                  autoComplete="email"
+                  required
+                  value={selectedStudentTarget.email}
+                  readOnly
+                  className="w-full p-2.5 bg-[#141417] border border-[rgba(242,242,242,0.1)] rounded-xl text-xs text-[#f2f2f2]"
+                />
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="student-password"
+                    autoComplete="current-password"
                     autoFocus
                     placeholder="Contraseña del alumno"
                     value={passwordInput}
@@ -383,7 +397,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                   type="submit"
                   className="flex-1 py-2 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
-                  Entrar a Mi Rutina
+                  {isSubmitting ? 'Ingresando...' : 'Entrar a Mi Rutina'}
                 </button>
               </div>
             </form>
