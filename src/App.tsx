@@ -328,6 +328,16 @@ export default function App() {
     setActiveStudentId(newStudent.id);
   };
 
+  // Handler: delete student (Coach profile only)
+  const handleDeleteStudent = (studentId: string) => {
+    if (students.length <= 1) return;
+    const remaining = students.filter((s) => s.id !== studentId);
+    setStudents(remaining);
+    if (activeStudentId === studentId) {
+      setActiveStudentId(remaining[0]?.id || '');
+    }
+  };
+
   // Exercise Database Handlers
   const handleAddCustomExercise = (newEx: ExerciseDbEntry) => {
     setExerciseDb((prev) => [newEx, ...prev]);
@@ -477,6 +487,7 @@ export default function App() {
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onExportHTML={handleExportHTML}
+        onLogout={() => setIsAuthModalOpen(true)}
       />
 
       {/* Main Container */}
@@ -589,6 +600,7 @@ export default function App() {
         students={students}
         activeStudent={activeStudent}
         onSelectRole={handleSelectRole}
+        onLogout={() => setIsAuthModalOpen(true)}
       />
 
       {/* Antropometría */}
@@ -608,6 +620,7 @@ export default function App() {
         onSelectStudent={setActiveStudentId}
         onUpdateStudent={handleUpdateStudent}
         onAddStudent={handleAddStudent}
+        onDeleteStudent={handleDeleteStudent}
       />
 
       {/* Buscador Rápido */}
