@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ViewMode, StudentProfile } from '../types';
 import { signInWithPassword, signUpWithPassword, supabase } from '../lib/supabase';
 import { 
@@ -45,6 +45,17 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
   const [emailInput, setEmailInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingCoach, setIsCreatingCoach] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep('select');
+      setSelectedStudentTarget(null);
+      setPasswordInput('');
+      setEmailInput('');
+      setAuthError(null);
+      setIsCreatingCoach(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
