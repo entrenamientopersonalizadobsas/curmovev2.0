@@ -481,11 +481,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                   type="submit"
                   className="flex-1 py-2.5 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
-<<<<<<< HEAD
                   {isSubmitting ? 'Ingresando...' : 'Entrar a Mi Rutina'}
-=======
-                  Validar Acceso
->>>>>>> 8d7fddd8e429b1020428cbaa766573533bda0191
                 </button>
               </div>
             </form>
