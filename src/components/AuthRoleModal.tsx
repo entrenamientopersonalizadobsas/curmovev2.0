@@ -13,7 +13,8 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  LogOut
+  LogOut,
+  Dumbbell
 } from 'lucide-react';
 
 interface AuthRoleModalProps {
@@ -35,7 +36,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
   onSelectRole,
   onLogout
 }) => {
-  const [step, setStep] = useState<'select' | 'coach_auth' | 'student_auth'>('select');
+  const [step, setStep] = useState<'select' | 'coach_auth' | 'student_select' | 'student_auth'>('select');
   const [selectedStudentTarget, setSelectedStudentTarget] = useState<StudentProfile | null>(null);
   
   // Password inputs
@@ -61,6 +62,13 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
 
   const handleStartTrainerAuth = () => {
     setStep('coach_auth');
+    setPasswordInput('');
+    setShowPassword(false);
+    setAuthError(null);
+  };
+
+  const handleStartStudentSelect = () => {
+    setStep('student_select');
     setPasswordInput('');
     setShowPassword(false);
     setAuthError(null);
@@ -94,7 +102,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
     } finally { setIsSubmitting(false); }
   };
 
-  const handleStartStudentAuth = (student: StudentProfile) => {
+  const handleChooseStudentForAuth = (student: StudentProfile) => {
     // If student is already active and logged in
     if (currentRole === 'student' && activeStudent.id === student.id) {
       onClose();
@@ -143,7 +151,10 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                 ACCESO Y SEGURIDAD DE CUENTA
               </h3>
               <p className="text-[11px] text-[rgba(242,242,242,0.5)]">
-                Cambiar de usuario o validar contraseña
+                {step === 'select' && 'Cambiar de usuario o validar contraseña'}
+                {step === 'coach_auth' && 'Cambiar de usuario o validar contraseña'}
+                {step === 'student_select' && 'Selecciona tu cuenta de atleta'}
+                {step === 'student_auth' && 'Cambiar de usuario o validar contraseña'}
               </p>
             </div>
           </div>
@@ -159,86 +170,83 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
         {/* Content */}
         <div className="p-5 space-y-4">
           
+          {/* STEP 1: LOGO CURMOVE + Seleccionar Alumno / Coach */}
           {step === 'select' && (
             <div className="space-y-4 animate-in fade-in duration-200">
               
-              {/* Option 1: Coach */}
-              <div 
-                onClick={handleStartTrainerAuth}
-                className="p-3.5 rounded-xl border border-[rgba(242,242,242,0.1)] hover:border-[#ff6b00] hover:bg-[#1c1c21] cursor-pointer transition-all flex items-center justify-between group bg-[#141417]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#1c1c21] text-[#ff6b00] flex items-center justify-center group-hover:bg-[#ff6b00] group-hover:text-[#ffffff] transition-colors border border-[rgba(242,242,242,0.1)]">
-                    <ShieldCheck className="w-5 h-5" />
+              {/* Logo CURMOVE */}
+              <div className="flex flex-col items-center justify-center pt-1 pb-1 text-center">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-[#1c1c21] flex items-center justify-center border border-[rgba(242,242,242,0.1)]">
+                    <Dumbbell className="w-4 h-4 text-[#ff6b00]" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#f2f2f2] flex items-center gap-1.5">
-                      <span>Ingreso como Entrenador / Coach</span>
-                      {currentRole === 'trainer' && (
-                        <span className="text-[9px] bg-[#ff6b00] text-[#ffffff] px-1.5 py-0.2 rounded-full font-bold">
-                          Activo
-                        </span>
-                      )}
-                    </h4>
-                    <p className="text-[10px] text-[rgba(242,242,242,0.5)] mt-0.5">
-                      Acceso a todos los alumnos, dashboard y base de datos
-                    </p>
+                  <div className="flex items-center font-display text-2xl font-extrabold tracking-tight">
+                    <span className="text-[#f2f2f2]">CUR</span>
+                    <span className="bg-[#ff6b00] text-[#ffffff] px-1.5 py-0.5 rounded-[3px] text-xs font-black ml-1 tracking-wider">
+                      MOVE
+                    </span>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[rgba(242,242,242,0.5)] group-hover:text-[#f2f2f2] shrink-0" />
+                <p className="text-xs text-[rgba(242,242,242,0.5)] font-medium">
+                  ¿Cómo deseas ingresar al sistema?
+                </p>
               </div>
 
-              {/* Divider */}
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-[rgba(242,242,242,0.1)]"></div>
-                <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-[rgba(242,242,242,0.5)]">
-                  O acceder como Alumno
-                </span>
-                <div className="flex-grow border-t border-[rgba(242,242,242,0.1)]"></div>
-              </div>
-
-              {/* Option 2: Student list */}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] uppercase font-bold text-[rgba(242,242,242,0.5)]">
-                  Selecciona la cuenta del atleta:
-                </label>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-                  {students.map((student) => {
-                    const isCurrent = currentRole === 'student' && activeStudent.id === student.id;
-
-                    return (
-                      <button
-                        key={student.id}
-                        onClick={() => handleStartStudentAuth(student)}
-                        className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isCurrent
-                            ? 'bg-[#1c1c21] border-[#ff6b00] shadow-xs'
-                            : 'bg-[#141417] border-[rgba(242,242,242,0.1)] hover:border-[#26262b] hover:bg-[#1c1c21]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img
-                            src={student.avatarUrl}
-                            alt={student.fullName}
-                            className="w-7 h-7 rounded-full object-cover border border-[rgba(242,242,242,0.1)]"
-                          />
-                          <div className="min-w-0">
-                            <span className="text-xs font-bold text-[#f2f2f2] block truncate">
-                              {student.fullName}
-                            </span>
-                            <span className="text-[10px] text-[rgba(242,242,242,0.5)] truncate block">
-                              {student.goal}
-                            </span>
-                          </div>
-                        </div>
-
-                        <span className="text-[10px] font-bold text-[#ffffff] bg-[#ff6b00] hover:bg-[#e65e00] px-2 py-0.5 rounded-md shrink-0">
-                          {isCurrent ? 'Actual' : 'Ingresar'}
-                        </span>
-                      </button>
-                    );
-                  })}
+              {/* Roles list */}
+              <div className="space-y-2.5">
+                
+                {/* Option 1: Coach */}
+                <div 
+                  onClick={handleStartTrainerAuth}
+                  className="p-3.5 rounded-xl border border-[rgba(242,242,242,0.1)] hover:border-[#ff6b00] hover:bg-[#1c1c21] cursor-pointer transition-all flex items-center justify-between group bg-[#141417]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#1c1c21] text-[#ff6b00] flex items-center justify-center group-hover:bg-[#ff6b00] group-hover:text-[#ffffff] transition-colors border border-[rgba(242,242,242,0.1)]">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-[#f2f2f2] flex items-center gap-1.5">
+                        <span>Ingreso como Entrenador / Coach</span>
+                        {currentRole === 'trainer' && (
+                          <span className="text-[9px] bg-[#ff6b00] text-[#ffffff] px-1.5 py-0.2 rounded-full font-bold">
+                            Actual
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[10px] text-[rgba(242,242,242,0.5)] mt-0.5">
+                        Acceso a todos los alumnos, dashboard y base de datos
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[rgba(242,242,242,0.5)] group-hover:text-[#ff6b00] group-hover:translate-x-0.5 transition-all shrink-0" />
                 </div>
+
+                {/* Option 2: Alumno */}
+                <div 
+                  onClick={handleStartStudentSelect}
+                  className="p-3.5 rounded-xl border border-[rgba(242,242,242,0.1)] hover:border-[#ff6b00] hover:bg-[#1c1c21] cursor-pointer transition-all flex items-center justify-between group bg-[#141417]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#1c1c21] text-[#ff6b00] flex items-center justify-center group-hover:bg-[#ff6b00] group-hover:text-[#ffffff] transition-colors border border-[rgba(242,242,242,0.1)]">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-[#f2f2f2] flex items-center gap-1.5">
+                        <span>Ingreso como Alumno / Atleta</span>
+                        {currentRole === 'student' && (
+                          <span className="text-[9px] bg-[#ff6b00] text-[#ffffff] px-1.5 py-0.2 rounded-full font-bold">
+                            Actual
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[10px] text-[rgba(242,242,242,0.5)] mt-0.5">
+                        Acceso a tu rutina personalizada y registro de cargas
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[rgba(242,242,242,0.5)] group-hover:text-[#ff6b00] group-hover:translate-x-0.5 transition-all shrink-0" />
+                </div>
+
               </div>
 
               {onLogout && (
@@ -251,7 +259,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                     className="w-full py-2 bg-[#1c1c21] hover:bg-[#26262b] text-[#ff6b00] text-xs font-bold rounded-xl border border-[rgba(242,242,242,0.1)] flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Cerrar Sesión & Ir al Portal de Ingreso</span>
+                    <span>Cerrar Sesión</span>
                   </button>
                 </div>
               )}
@@ -259,7 +267,7 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
             </div>
           )}
 
-          {/* Coach Auth Step */}
+          {/* STEP 2 (Coach): CONTRASEÑA DE ENTRENADOR */}
           {step === 'coach_auth' && (
             <form onSubmit={handleVerifyCoach} className="space-y-4 animate-in fade-in duration-200">
               <div className="text-center space-y-1">
@@ -321,14 +329,14 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep('select')}
-                  className="flex-1 py-2 bg-[#1c1c21] hover:bg-[#26262b] text-[#f2f2f2] font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-pointer border border-[rgba(242,242,242,0.1)]"
+                  className="flex-1 py-2.5 bg-[#1c1c21] hover:bg-[#26262b] text-[#f2f2f2] font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-pointer border border-[rgba(242,242,242,0.1)]"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Atrás</span>
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {isSubmitting ? 'Ingresando...' : (isCreatingCoach ? 'Crear cuenta' : 'Validar Acceso')}
                 </button>
@@ -336,20 +344,85 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
             </form>
           )}
 
-          {/* Student Auth Step */}
+          {/* STEP 2 (Alumno - Select Athlete): SELECCIONA LA CUENTA DEL ATLETA */}
+          {step === 'student_select' && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] uppercase font-bold text-[rgba(242,242,242,0.5)]">
+                  SELECCIONA LA CUENTA DEL ATLETA:
+                </label>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar">
+                  {students.map((student) => {
+                    const isCurrent = currentRole === 'student' && activeStudent.id === student.id;
+
+                    return (
+                      <button
+                        key={student.id}
+                        onClick={() => handleChooseStudentForAuth(student)}
+                        className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-[#1c1c21] border-[#ff6b00] shadow-xs'
+                            : 'bg-[#141417] border-[rgba(242,242,242,0.1)] hover:border-[#26262b] hover:bg-[#1c1c21]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={student.avatarUrl}
+                            alt={student.fullName}
+                            className="w-7 h-7 rounded-full object-cover border border-[rgba(242,242,242,0.1)]"
+                          />
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-[#f2f2f2] block truncate">
+                              {student.fullName}
+                            </span>
+                            <span className="text-[10px] text-[rgba(242,242,242,0.5)] truncate block">
+                              {student.goal}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="text-[10px] font-bold text-[#ffffff] bg-[#ff6b00] hover:bg-[#e65e00] px-2 py-0.5 rounded-md shrink-0">
+                          {isCurrent ? 'Actual' : 'Ingresar'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('select')}
+                  className="w-full py-2 bg-[#1c1c21] hover:bg-[#26262b] text-[#f2f2f2] font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-pointer border border-[rgba(242,242,242,0.1)]"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Atrás</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3 (Alumno - Password Auth): CONTRASEÑA DE ALUMNO */}
           {step === 'student_auth' && selectedStudentTarget && (
             <form onSubmit={handleVerifyStudent} className="space-y-4 animate-in fade-in duration-200">
               <div className="text-center space-y-1">
-                <img
-                  src={selectedStudentTarget.avatarUrl}
-                  alt={selectedStudentTarget.fullName}
-                  className="w-12 h-12 rounded-full object-cover border border-[#ff6b00] mx-auto"
-                />
+                <div className="w-10 h-10 rounded-xl bg-[#1c1c21] text-[#ff6b00] mx-auto flex items-center justify-center border border-[rgba(242,242,242,0.1)] overflow-hidden">
+                  {selectedStudentTarget.avatarUrl ? (
+                    <img
+                      src={selectedStudentTarget.avatarUrl}
+                      alt={selectedStudentTarget.fullName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-[#ff6b00]" />
+                  )}
+                </div>
                 <h4 className="text-xs font-black uppercase tracking-wider text-[#f2f2f2]">
-                  {selectedStudentTarget.fullName}
+                  CONTRASEÑA DE ALUMNO
                 </h4>
                 <p className="text-[11px] text-[rgba(242,242,242,0.5)]">
-                  Ingresa tu contraseña de alumno para ver tu rutina
+                  Ingresa tu clave para acceder a la rutina de <span className="text-[#f2f2f2] font-semibold">{selectedStudentTarget.fullName}</span>
                 </p>
               </div>
 
@@ -398,17 +471,21 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setStep('select')}
-                  className="flex-1 py-2 bg-[#1c1c21] hover:bg-[#26262b] text-[#f2f2f2] font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-pointer border border-[rgba(242,242,242,0.1)]"
+                  onClick={() => setStep('student_select')}
+                  className="flex-1 py-2.5 bg-[#1c1c21] hover:bg-[#26262b] text-[#f2f2f2] font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-pointer border border-[rgba(242,242,242,0.1)]"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Atrás</span>
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
+<<<<<<< HEAD
                   {isSubmitting ? 'Ingresando...' : 'Entrar a Mi Rutina'}
+=======
+                  Validar Acceso
+>>>>>>> 8d7fddd8e429b1020428cbaa766573533bda0191
                 </button>
               </div>
             </form>
@@ -420,4 +497,3 @@ export const AuthRoleModal: React.FC<AuthRoleModalProps> = ({
     </div>
   );
 };
-

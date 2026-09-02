@@ -14,7 +14,9 @@ import {
   KeyRound,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash2,
+  AlertOctagon
 } from 'lucide-react';
 
 interface ProfileModalProps {
@@ -25,6 +27,7 @@ interface ProfileModalProps {
   onSelectStudent: (studentId: string) => void;
   onUpdateStudent: (updated: StudentProfile) => void;
   onAddStudent: (newStudent: StudentProfile) => void;
+  onDeleteStudent?: (studentId: string) => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -34,10 +37,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   students,
   onSelectStudent,
   onUpdateStudent,
-  onAddStudent
+  onAddStudent,
+  onDeleteStudent
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [studentToDelete, setStudentToDelete] = useState<StudentProfile | null>(null);
 
   // Edit fields
   const [fullName, setFullName] = useState<string>(activeStudent.fullName);
@@ -155,26 +160,45 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               {students.map((st) => {
                 const isSelected = st.id === activeStudent.id;
                 return (
-                  <button
+                  <div
                     key={st.id}
-                    onClick={() => onSelectStudent(st.id)}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                    className={`p-3 rounded-xl border text-left flex items-center justify-between gap-2 transition-all group ${
                       isSelected
                         ? 'bg-[#1c1c21] border-[#ff6b00] shadow-sm ring-1 ring-[#ff6b00]/40'
                         : 'bg-[#1c1c21] border-[rgba(242,242,242,0.1)] hover:border-[rgba(242,242,242,0.2)] hover:bg-[#26262b]'
                     }`}
                   >
-                    <img
-                      src={st.avatarUrl}
-                      alt={st.fullName}
-                      className="w-9 h-9 rounded-full object-cover border border-[rgba(242,242,242,0.15)]"
-                    />
-                    <div className="truncate">
-                      <h4 className="text-xs font-bold text-[#f2f2f2] truncate">{st.fullName}</h4>
-                      <p className="text-[11px] text-[#ff6b00] font-medium">{st.goal}</p>
-                      <p className="text-[10px] text-[rgba(242,242,242,0.5)]">{st.level}</p>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelectStudent(st.id)}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer"
+                    >
+                      <img
+                        src={st.avatarUrl}
+                        alt={st.fullName}
+                        className="w-9 h-9 rounded-full object-cover border border-[rgba(242,242,242,0.15)] shrink-0"
+                      />
+                      <div className="truncate">
+                        <h4 className="text-xs font-bold text-[#f2f2f2] truncate">{st.fullName}</h4>
+                        <p className="text-[11px] text-[#ff6b00] font-medium">{st.goal}</p>
+                        <p className="text-[10px] text-[rgba(242,242,242,0.5)]">{st.level}</p>
+                      </div>
+                    </button>
+
+                    {onDeleteStudent && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStudentToDelete(st);
+                        }}
+                        title={`Eliminar a ${st.fullName}`}
+                        className="p-1.5 rounded-lg text-[rgba(242,242,242,0.4)] hover:text-red-400 hover:bg-red-950/40 opacity-70 group-hover:opacity-100 transition-all cursor-pointer shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -198,13 +222,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="px-3 py-1.5 bg-[#141417] hover:bg-[#26262b] text-[#f2f2f2] text-xs font-bold rounded-lg border border-[rgba(242,242,242,0.1)] flex items-center gap-1.5 cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-[#ff6b00]" />
-                <span>{isEditing ? 'Cancelar' : 'Editar Datos & Clave'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {onDeleteStudent && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentToDelete(activeStudent)}
+                    className="px-3 py-1.5 bg-red-950/30 hover:bg-red-950/60 text-red-400 hover:text-red-300 text-xs font-bold rounded-lg border border-red-800/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Eliminar este alumno"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="px-3 py-1.5 bg-[#141417] hover:bg-[#26262b] text-[#f2f2f2] text-xs font-bold rounded-lg border border-[rgba(242,242,242,0.1)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#ff6b00]" />
+                  <span>{isEditing ? 'Cancelar' : 'Editar Datos & Clave'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Profile fields */}
@@ -432,6 +470,84 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
 
       </div>
+
+      {/* Confirmation Modal to Delete Student */}
+      {studentToDelete && (
+        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#141417] border border-red-900/50 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 text-[#f2f2f2]">
+            
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-800/40 flex items-center justify-center text-red-400 shrink-0">
+                <AlertOctagon className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-[#f2f2f2] tracking-tight">
+                  ¿ELIMINAR ALUMNO?
+                </h3>
+                <p className="text-xs text-[rgba(242,242,242,0.6)] mt-0.5">
+                  Esta acción es permanente e irreversible.
+                </p>
+              </div>
+            </div>
+
+            {/* Student Preview Card */}
+            <div className="p-3 bg-[#1c1c21] rounded-xl border border-[rgba(242,242,242,0.1)] flex items-center gap-3">
+              <img
+                src={studentToDelete.avatarUrl}
+                alt={studentToDelete.fullName}
+                className="w-10 h-10 rounded-full object-cover border border-red-500/40"
+              />
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-[#f2f2f2] truncate">
+                  {studentToDelete.fullName}
+                </h4>
+                <p className="text-[11px] text-[rgba(242,242,242,0.5)] truncate">
+                  {studentToDelete.email} • {studentToDelete.goal}
+                </p>
+              </div>
+            </div>
+
+            {students.length <= 1 ? (
+              <div className="p-3 bg-amber-950/30 border border-amber-800/40 rounded-xl text-xs text-amber-300 space-y-1">
+                <p className="font-bold">⚠️ No es posible eliminar al único alumno</p>
+                <p className="text-[11px] text-amber-200/80">
+                  El sistema requiere tener al menos 1 alumno registrado. Añade un nuevo alumno antes de eliminar este perfil.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-[rgba(242,242,242,0.7)] leading-relaxed">
+                Se eliminarán todas las planificaciones de entrenamiento, historial de cargas, mediciones corporales y logs de readiness asociados a <strong className="text-[#f2f2f2]">{studentToDelete.fullName}</strong>.
+              </p>
+            )}
+
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setStudentToDelete(null)}
+                className="px-4 py-2 bg-[#1c1c21] hover:bg-[#26262b] text-[rgba(242,242,242,0.8)] text-xs font-bold rounded-xl border border-[rgba(242,242,242,0.1)] transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              {students.length > 1 && onDeleteStudent && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idToDelete = studentToDelete.id;
+                    setStudentToDelete(null);
+                    onDeleteStudent(idToDelete);
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-[#ffffff] text-xs font-black rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar Definitivamente</span>
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
