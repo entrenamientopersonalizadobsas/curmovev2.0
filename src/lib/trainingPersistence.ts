@@ -61,6 +61,18 @@ export async function saveWorkout(userId: string, workout: DailyWorkout) {
   }
 }
 
+export async function loadStudentsForUser(userId: string): Promise<StudentProfile[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.from('coach_students').select('id,full_name,email,avatar_url,age,height_cm,current_weight_kg,goal,level,target_days_per_week,injuries_or_notes,start_date,app_data,student_user_id').or(`coach_user_id.eq.${userId},student_user_id.eq.${userId}`).order('full_name')
+  if (error) throw error
+  return (data || []).map((row) => ({
+    id: row.id, authUserId: row.student_user_id || undefined, fullName: row.full_name, email: row.email,
+    avatarUrl: row.avatar_url || '', age: row.age || 0, heightCm: row.height_cm || 0, currentWeightKg: row.current_weight_kg || 0,
+    goal: row.goal, level: row.level, targetDaysPerWeek: row.target_days_per_week || 0, injuriesOrNotes: row.injuries_or_notes || '',
+    startDate: row.start_date, workouts: row.app_data?.workouts || {}, readinessLogs: row.app_data?.readinessLogs || {}, anthropometryHistory: row.app_data?.anthropometryHistory || [],
+  }))
+}
+
 export async function loadCoachStudents(coachUserId: string): Promise<StudentProfile[]> {
   if (!supabase) return []
   const { data, error } = await supabase.from('coach_students').select('id,full_name,email,avatar_url,age,height_cm,current_weight_kg,goal,level,target_days_per_week,injuries_or_notes,start_date,app_data,student_user_id').eq('coach_user_id', coachUserId).order('full_name')

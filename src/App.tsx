@@ -36,7 +36,7 @@ import { RestTimerFloating } from './components/RestTimerFloating';
 import { SaveSessionModal } from './components/SaveSessionModal';
 import { exportRoutineToHTML } from './utils/exportHtml';
 import { supabase } from './lib/supabase';
-import { loadCoachStudents, saveAnthropometry, saveCoachStudent, saveReadiness, saveWorkout } from './lib/trainingPersistence';
+import { loadStudentsForUser, saveAnthropometry, saveCoachStudent, saveReadiness, saveWorkout } from './lib/trainingPersistence';
 
 export default function App() {
   // Load students from localStorage or initialize with mockData
@@ -126,7 +126,7 @@ export default function App() {
       setAuthUserId(userId);
       if (!userId) return;
       try {
-        const remoteStudents = await loadCoachStudents(userId);
+        const remoteStudents = await loadStudentsForUser(userId);
         if (mounted && remoteStudents.length) {
           setStudents(remoteStudents);
           setActiveStudentId(remoteStudents[0].id);
@@ -353,10 +353,12 @@ export default function App() {
   };
 
   // Handler: update student profile
-  const handleUpdateStudent = (updatedStudent: StudentProfile) => {
-    setStudents((prev) =>
-      prev.map((st) => (st.id === updatedStudent.id ? updatedStudent : st))
-    );
+  const handleUpdateStudent = async (updatedStudent: StudentProfile) => {
+    if (authUserId && viewMode === 'trainer' && supabase) {
+      try { await saveCoachStudent(authUserId, updatedStudent); }
+      catch (error) { console.error('[v0] Error guardando perfil compartido:', error); return; }
+    }
+    setStudents((prev) => prev.map((st) => (st.id === updatedStudent.id ? updatedStudent : st)));
   };
 
   // Handler: add new student
