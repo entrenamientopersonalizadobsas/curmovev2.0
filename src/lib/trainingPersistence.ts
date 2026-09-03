@@ -98,7 +98,7 @@ export async function loadCoachStudents(coachUserId: string): Promise<StudentPro
 }
 
 export async function saveCoachStudent(coachUserId: string, student: StudentProfile) {
-  if (!supabase) return
+  if (!supabase) throw new Error('Supabase no está disponible. Recargá la aplicación e intentá nuevamente.')
   const { error } = await supabase.from('coach_students').upsert({
     id: student.id.startsWith('student-') ? undefined : student.id,
     coach_user_id: coachUserId,

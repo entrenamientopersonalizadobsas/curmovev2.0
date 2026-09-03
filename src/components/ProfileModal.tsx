@@ -26,7 +26,7 @@ interface ProfileModalProps {
   students: StudentProfile[];
   onSelectStudent: (studentId: string) => void;
   onUpdateStudent: (updated: StudentProfile) => void;
-  onAddStudent: (newStudent: StudentProfile) => void;
+  onAddStudent: (newStudent: StudentProfile) => Promise<void>;
   onDeleteStudent?: (studentId: string) => void;
 }
 
@@ -59,6 +59,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [newPassword, setNewPassword] = useState<string>('1234');
   const [newGoal, setNewGoal] = useState<StudentProfile['goal']>('Hipertrofia');
   const [newLevel, setNewLevel] = useState<StudentProfile['level']>('Intermedio');
+  const [addError, setAddError] = useState<string | null>(null);
+  const [isSavingStudent, setIsSavingStudent] = useState(false);
 
   React.useEffect(() => {
     setFullName(activeStudent.fullName);
@@ -84,9 +86,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setIsEditing(false);
   };
 
-  const handleCreateStudent = (e: React.FormEvent) => {
+  const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
+    setAddError(null);
+    setIsSavingStudent(true);
 
     const newSt: StudentProfile = {
       id: `student-${Date.now()}`,
@@ -107,9 +111,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       workouts: {}
     };
 
-    onAddStudent(newSt);
-    onSelectStudent(newSt.id);
-    setShowAddModal(false);
+    try {
+      await onAddStudent(newSt);
+      onSelectStudent(newSt.id);
+      setShowAddModal(false);
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : 'No se pudo guardar el alumno en Supabase.');
+    } finally {
+      setIsSavingStudent(false);
+    }
     setNewName('');
     setNewEmail('');
     setNewPassword('1234');
@@ -448,6 +458,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </div>
                 </div>
 
+                {addError && <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{addError}</p>}
                 <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
@@ -458,9 +469,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold rounded-lg text-xs transition-all cursor-pointer"
+                    disabled={isSavingStudent}
+                    className="px-4 py-1.5 bg-[#ff6b00] hover:bg-[#e65e00] text-[#ffffff] font-bold rounded-lg text-xs transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Registrar Atleta
+                    {isSavingStudent ? 'Guardando...' : 'Registrar Atleta'}
                   </button>
                 </div>
               </form>

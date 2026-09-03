@@ -118,6 +118,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(true);
   const [isSaveSessionOpen, setIsSaveSessionOpen] = useState<boolean>(false);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [studentSaveError, setStudentSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -363,15 +364,19 @@ export default function App() {
 
   // Handler: add new student
   const handleAddStudent = async (newStudent: StudentProfile) => {
-    if (!authUserId || !supabase) {
-      console.error('[v0] No hay sesión de coach para guardar el alumno.');
-      return;
+    setStudentSaveError(null);
+    if (!authUserId || !supabase || viewMode !== 'trainer') {
+      const message = 'Iniciá sesión como coach antes de agregar un alumno.';
+      setStudentSaveError(message);
+      throw new Error(message);
     }
     try {
       await saveCoachStudent(authUserId, newStudent);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar el alumno en Supabase.';
       console.error('[v0] Error guardando alumno:', error);
-      return;
+      setStudentSaveError(`No se guardó el alumno: ${message}`);
+      throw error;
     }
     setStudents((prev) => prev.some((student) => student.id === newStudent.id)
       ? prev.map((student) => student.id === newStudent.id ? newStudent : student)
