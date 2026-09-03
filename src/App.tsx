@@ -36,7 +36,7 @@ import { RestTimerFloating } from './components/RestTimerFloating';
 import { SaveSessionModal } from './components/SaveSessionModal';
 import { exportRoutineToHTML } from './utils/exportHtml';
 import { supabase } from './lib/supabase';
-import { saveAnthropometry, saveCoachStudent, saveReadiness, saveWorkout } from './lib/trainingPersistence';
+import { loadCoachStudents, saveAnthropometry, saveCoachStudent, saveReadiness, saveWorkout } from './lib/trainingPersistence';
 
 export default function App() {
   // Load students from localStorage or initialize with mockData
@@ -121,11 +121,21 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id ?? null));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthUserId(session?.user?.id ?? null);
-    });
-    return () => listener.subscription.unsubscribe();
+    let mounted = true;
+    const load = async (userId: string | null) => {
+      setAuthUserId(userId);
+      if (!userId) return;
+      try {
+        const remoteStudents = await loadCoachStudents(userId);
+        if (mounted && remoteStudents.length) {
+          setStudents(remoteStudents);
+          setActiveStudentId(remoteStudents[0].id);
+        }
+      } catch (error) { console.error('[v0] Error cargando alumnos desde Supabase:', error); }
+    };
+    supabase.auth.getUser().then(({ data }) => load(data.user?.id ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { load(session?.user?.id ?? null); });
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
   // Floating Rest Timer
@@ -213,7 +223,7 @@ export default function App() {
   // Handler: save readiness logs (Energy, Fatigue, Soreness, Sleep, Mood, Notes)
   const handleSaveReadiness = async (date: string, data: DailyReadiness) => {
     if (authUserId) {
-      try { await saveReadiness(authUserId, data); } catch (error) { console.error('[v0] Error guardando readiness:', error); }
+      try { await saveReadiness(activeStudent.authUserId || authUserId, data); } catch (error) { console.error('[v0] Error guardando readiness:', error); }
     }
     setStudents((prev) =>
       prev.map((st) => {
@@ -295,8 +305,8 @@ export default function App() {
 
     if (authUserId) {
       try {
-        await saveWorkout(authUserId, completedWorkout);
-        await saveReadiness(authUserId, updatedReadiness);
+        await saveWorkout(activeStudent.authUserId || authUserId, completedWorkout);
+        await saveReadiness(activeStudent.authUserId || authUserId, updatedReadiness);
       } catch (error) {
         console.error('[v0] Error guardando sesión:', error);
       }
@@ -326,7 +336,7 @@ export default function App() {
   // Handler: add anthropometry evaluation
   const handleAddAnthropometryRecord = async (record: AnthropometryRecord) => {
     if (authUserId) {
-      try { await saveAnthropometry(authUserId, record); } catch (error) { console.error('[v0] Error guardando antropometría:', error); }
+      try { await saveAnthropometry(activeStudent.authUserId || authUserId, record); } catch (error) { console.error('[v0] Error guardando antropometría:', error); }
     }
     setStudents((prev) =>
       prev.map((st) => {
@@ -351,12 +361,15 @@ export default function App() {
 
   // Handler: add new student
   const handleAddStudent = async (newStudent: StudentProfile) => {
-    if (authUserId && supabase) {
-      try {
-        await saveCoachStudent(authUserId, newStudent);
-      } catch (error) {
-        console.error('[v0] Error guardando alumno:', error);
-      }
+    if (!authUserId || !supabase) {
+      console.error('[v0] No hay sesión de coach para guardar el alumno.');
+      return;
+    }
+    try {
+      await saveCoachStudent(authUserId, newStudent);
+    } catch (error) {
+      console.error('[v0] Error guardando alumno:', error);
+      return;
     }
     setStudents((prev) => prev.some((student) => student.id === newStudent.id)
       ? prev.map((student) => student.id === newStudent.id ? newStudent : student)

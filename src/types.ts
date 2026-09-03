@@ -163,6 +163,7 @@ export type DashboardPeriod =
 
 export interface StudentProfile {
   id: string;
+  authUserId?: string;
   fullName: string;
   email: string;
   password?: string;
