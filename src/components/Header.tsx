@@ -275,11 +275,13 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logout button */}
           {onLogout && (
             <button
+              id="btn-header-logout"
               onClick={onLogout}
-              title="Cerrar Sesión"
-              className="p-2 rounded-lg bg-[#1c1c21] hover:bg-[#2e1a1e] text-[rgba(242,242,242,0.5)] hover:text-[#ff5555] border border-[rgba(242,242,242,0.1)] transition-colors shadow-xs cursor-pointer"
+              title="Cerrar Sesión / Cambiar de Rol"
+              className="px-2.5 py-1.5 rounded-lg bg-[#1c1c21] hover:bg-[#2e1a1e] text-[rgba(242,242,242,0.6)] hover:text-[#ff5555] border border-[rgba(242,242,242,0.1)] transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 text-[#ff6b00]" />
+              <span className="hidden md:inline">Salir</span>
             </button>
           )}
 

@@ -91,6 +91,13 @@ export interface DailyWorkout {
   completedAt?: string;
 }
 
+export interface NutritionMeals {
+  breakfast: boolean; // Desayuno
+  lunch: boolean;     // Almuerzo
+  snack: boolean;     // Merienda
+  dinner: boolean;    // Cena
+}
+
 export interface DailyReadiness {
   date: string;
   energyLevel: number; // 1 to 5 (⚡)
@@ -99,6 +106,9 @@ export interface DailyReadiness {
   sleepHours: number;
   mood: 'Excelente' | 'Bueno' | 'Regular' | 'Cansado' | 'Con Dolor';
   notes: string;
+  // Rutina Alimentaria
+  nutritionMeals?: NutritionMeals;
+  nutritionNotes?: string;
 }
 
 export interface AnthropometryRecord {

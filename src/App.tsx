@@ -32,6 +32,7 @@ import { AnthropometryModal } from './components/AnthropometryModal';
 import { ProfileModal } from './components/ProfileModal';
 import { ExerciseSearchModal } from './components/ExerciseSearchModal';
 import { AuthRoleModal } from './components/AuthRoleModal';
+import { LoginPortal } from './components/LoginPortal';
 import { RestTimerFloating } from './components/RestTimerFloating';
 import { SaveSessionModal } from './components/SaveSessionModal';
 import { exportRoutineToHTML } from './utils/exportHtml';
@@ -115,7 +116,7 @@ export default function App() {
   const [isAnthropometryOpen, setIsAnthropometryOpen] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isSaveSessionOpen, setIsSaveSessionOpen] = useState<boolean>(false);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
 
@@ -127,6 +128,11 @@ export default function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // User Authentication & CURMOVE Login State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('curmove_session_active') === 'true';
+  });
 
   // Floating Rest Timer
   const [restTimerSeconds, setRestTimerSeconds] = useState<number>(90);
@@ -290,7 +296,9 @@ export default function App() {
       mood: existingReadiness?.mood || 'Excelente',
       notes: feedback
         ? `${existingReadiness?.notes ? existingReadiness.notes + ' • ' : ''}Post-sesión: ${feedback}`
-        : (existingReadiness?.notes || 'Sesión guardada y registrada con éxito.')
+        : (existingReadiness?.notes || 'Sesión guardada y registrada con éxito.'),
+      nutritionMeals: existingReadiness?.nutritionMeals,
+      nutritionNotes: existingReadiness?.nutritionNotes
     };
 
     if (authUserId) {
@@ -456,6 +464,23 @@ export default function App() {
     }
   };
 
+  const handleLoginSuccess = (role: 'trainer' | 'student', studentId?: string) => {
+    setViewMode(role);
+    if (studentId) {
+      setActiveStudentId(studentId);
+    }
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+    localStorage.setItem('curmove_session_active', 'true');
+    localStorage.setItem('curmove_session_role', role);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setIsAuthModalOpen(false);
+    localStorage.removeItem('curmove_session_active');
+  };
+
   const handleToggleModeWithSecurity = (newMode: ViewMode) => {
     if (newMode === 'trainer' && viewMode === 'student') {
       setIsAuthModalOpen(true);
@@ -500,6 +525,18 @@ export default function App() {
     exportRoutineToHTML(activeStudent, currentWorkout);
   };
 
+  // If user is not authenticated, show the CURMOVE Entry / Login Portal:
+  // 1) LOGO DE CURMOVE + pedir ingresar como alumno / coach.
+  // 2) dependiendo si es alumno o coach que se le abra así para ingresar.
+  if (!isAuthenticated) {
+    return (
+      <LoginPortal
+        students={students}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0c0c0e] text-[#f2f2f2] flex flex-col font-sans selection:bg-[#ff6b00] selection:text-[#ffffff]">
       
@@ -523,7 +560,7 @@ export default function App() {
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onExportHTML={handleExportHTML}
-        onLogout={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}
@@ -636,7 +673,7 @@ export default function App() {
         students={students}
         activeStudent={activeStudent}
         onSelectRole={handleSelectRole}
-        onLogout={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Antropometría */}

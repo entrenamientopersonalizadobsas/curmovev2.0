@@ -73,6 +73,22 @@ export function generate12MonthStudent(): StudentProfile {
         const sorenessLvl = d === 2 ? 3 : d === 5 ? 2 : 1;
         const sleepHours = 7.5 + (d % 2 === 0 ? 0.5 : -0.2);
 
+        // Nutrition routine variation for 12-month periodization
+        const is4Meals = d === 0 || d === 1 || d === 3 || d === 5;
+        const is3Meals = d === 4;
+        const is2Meals = d === 2;
+        const nutritionMeals = {
+          breakfast: is4Meals || is3Meals,
+          lunch: true, // Key principal meal
+          snack: is4Meals,
+          dinner: true // Key principal meal
+        };
+        const nutritionNotes = is4Meals
+          ? '4 comidas completadas con excelente distribución de macronutrientes y buena digestión.'
+          : is3Meals
+          ? 'Completó Desayuno, Almuerzo y Cena. No llegó con tiempo para merendar.'
+          : 'Almuerzo y cena abundantes en día de descanso activo.';
+
         readinessLogs[dayDateStr] = {
           date: dayDateStr,
           energyLevel: energyLvl,
@@ -80,7 +96,9 @@ export function generate12MonthStudent(): StudentProfile {
           muscleSoreness: sorenessLvl,
           sleepHours,
           mood: energyLvl >= 4 ? 'Excelente' : 'Bueno',
-          notes: `Mes ${m} • Sem ${w} (${dayName}): Buen descanso (${sleepHours}h). Nivel de energía ⚡ ${energyLvl}/5.`
+          notes: `Mes ${m} • Sem ${w} (${dayName}): Buen descanso (${sleepHours}h). Nivel de energía ⚡ ${energyLvl}/5.`,
+          nutritionMeals,
+          nutritionNotes
         };
 
         // Workouts on Mon, Tue, Thu, Fri (Rest on Wed, Sat, Sun)

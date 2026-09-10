@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Info
 } from 'lucide-react';
+import { NutritionPeriodSummary } from '../../utils/nutritionUtils';
 
 interface DashboardMetricQuadrantsProps {
   hierarchyData: MuscleGroupHierarchyData[];
@@ -34,6 +35,7 @@ interface DashboardMetricQuadrantsProps {
   avgRpe: string;
   avgRir: string;
   selectedPeriodTitle: string;
+  nutritionSummary?: NutritionPeriodSummary;
 }
 
 export const DashboardMetricQuadrants: React.FC<DashboardMetricQuadrantsProps> = ({
@@ -51,7 +53,8 @@ export const DashboardMetricQuadrants: React.FC<DashboardMetricQuadrantsProps> =
   adherencePct,
   avgRpe,
   avgRir,
-  selectedPeriodTitle
+  selectedPeriodTitle,
+  nutritionSummary
 }) => {
   // Selected muscle for quadrant drill-down
   const [activeQuadrantMuscle, setActiveQuadrantMuscle] = useState<string>(
@@ -220,8 +223,8 @@ export const DashboardMetricQuadrants: React.FC<DashboardMetricQuadrantsProps> =
             </div>
           </div>
 
-          {/* 4-Stat Metric Box */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {/* Stat Metric Box */}
+          <div className={`grid gap-2 ${nutritionSummary ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
             <div className="bg-[#1c1c21] p-2.5 rounded-xl border border-[rgba(242,242,242,0.1)] text-center">
               <span className="text-[9px] uppercase font-bold text-[rgba(242,242,242,0.5)] block">Fatiga</span>
               <span className="text-base font-black text-[#f2f2f2]">{avgFatigue}/5</span>
@@ -239,6 +242,26 @@ export const DashboardMetricQuadrants: React.FC<DashboardMetricQuadrantsProps> =
               <span className="text-base font-black text-[#f2f2f2]">{avgSleep}h</span>
               <span className="text-[9px] text-[#22c55e] block mt-0.5">Anabólico</span>
             </div>
+
+            {nutritionSummary && (
+              <div className="bg-[#1c1c21] p-2.5 rounded-xl border border-[rgba(242,242,242,0.1)] text-center">
+                <span className="text-[9px] uppercase font-bold text-[rgba(242,242,242,0.5)] block">Nutrición</span>
+                <span className="text-base font-black text-[#f2f2f2] flex items-center justify-center gap-1">
+                  <span className={`w-2 h-2 rounded-full ${
+                    nutritionSummary.dominantStatus === 'VERDE' ? 'bg-[#22c55e]' :
+                    nutritionSummary.dominantStatus === 'AMARILLO' ? 'bg-[#eab308]' : 'bg-[#ef4444]'
+                  }`} />
+                  {nutritionSummary.avgMealsPerDay}/4
+                </span>
+                <span className={`text-[9px] block mt-0.5 font-bold ${
+                  nutritionSummary.dominantStatus === 'VERDE' ? 'text-[#22c55e]' :
+                  nutritionSummary.dominantStatus === 'AMARILLO' ? 'text-[#eab308]' : 'text-[#ef4444]'
+                }`}>
+                  {nutritionSummary.dominantStatus === 'VERDE' ? 'Verde (4/4)' :
+                   nutritionSummary.dominantStatus === 'AMARILLO' ? 'Amarillo' : 'Rojo'}
+                </span>
+              </div>
+            )}
 
             <div className="bg-[#1c1c21] p-2.5 rounded-xl border border-[rgba(242,242,242,0.1)] text-center">
               <span className="text-[9px] uppercase font-bold text-[rgba(242,242,242,0.5)] block">Adherencia</span>

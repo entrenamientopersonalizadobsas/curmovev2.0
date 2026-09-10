@@ -491,7 +491,14 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
         muscleSoreness: 2,
         sleepHours: 7.5,
         mood: 'Excelente',
-        notes: 'Descansé muy bien el fin de semana. Listo para empuje.'
+        notes: 'Descansé muy bien el fin de semana. Listo para empuje.',
+        nutritionMeals: {
+          breakfast: true,
+          lunch: true,
+          snack: true,
+          dinner: true
+        },
+        nutritionNotes: 'Completé las 4 comidas. Muy buena digestión y energía constante en el entrenamiento.'
       },
       [weekDates[1]]: {
         date: weekDates[1],
@@ -500,7 +507,14 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
         muscleSoreness: 1,
         sleepHours: 8.0,
         mood: 'Excelente',
-        notes: 'Energía al 100%. Las piernas responden de 10.'
+        notes: 'Energía al 100%. Las piernas responden de 10.',
+        nutritionMeals: {
+          breakfast: true,
+          lunch: true,
+          snack: false,
+          dinner: true
+        },
+        nutritionNotes: 'Salteé la merienda por una reunión laboral, pero almorcé y cené con excelente carga de proteínas y carbohidratos.'
       },
       [weekDates[2]]: {
         date: weekDates[2],
@@ -509,7 +523,14 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
         muscleSoreness: 3,
         sleepHours: 6.5,
         mood: 'Regular',
-        notes: 'Día de descanso activo, leve cansancio laboral.'
+        notes: 'Día de descanso activo, leve cansancio laboral.',
+        nutritionMeals: {
+          breakfast: false,
+          lunch: true,
+          snack: false,
+          dinner: true
+        },
+        nutritionNotes: 'Hice ayuno intermitente en la mañana. Almuerzo y cena completos y saciantes.'
       }
     },
     workouts: {

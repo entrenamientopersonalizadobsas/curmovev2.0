@@ -46,8 +46,17 @@ import {
   X,
   Download,
   FileSpreadsheet,
-  Printer
+  Printer,
+  Utensils,
+  Coffee,
+  Sun,
+  Sunset
 } from 'lucide-react';
+import { 
+  evaluateNutritionMeals, 
+  calculateNutritionPeriodSummary, 
+  NutritionPeriodSummary 
+} from '../utils/nutritionUtils';
 
 interface TrainerDashboardViewProps {
   student: StudentProfile;
@@ -205,14 +214,22 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
   // Quick download active tab as PDF / Printable
   const handlePrintCurrentTab = () => {
     const html = generateTabPrintHtml(activeTab, student, { 
-      macrocycleName: macrocycles.find(m => m.id === selectedMacrocycleId)?.name 
+      macrocycleName: macrocycles.find(m => m.id === selectedMacrocycleId)?.name,
+      selectedMonth,
+      selectedWeek,
+      selectedPeriodTitle: getSelectedPeriodTitle()
     });
-    openPrintDialog(html, `Reporte_${activeTab}_${student.fullName}`);
+    openPrintDialog(html, `Dossier_${activeTab}_${student.fullName.replace(/\s+/g, '_')}`);
   };
 
   // Quick download active tab as CSV
   const handleDownloadCsvCurrentTab = () => {
-    const csv = generateTabCsv(activeTab, student);
+    const csv = generateTabCsv(activeTab, student, {
+      macrocycleName: macrocycles.find(m => m.id === selectedMacrocycleId)?.name,
+      selectedMonth,
+      selectedWeek,
+      selectedPeriodTitle: getSelectedPeriodTitle()
+    });
     triggerFileDownload(csv, `Planilla_${activeTab}_${student.fullName.replace(/\s+/g, '_')}.csv`, 'text/csv;charset=utf-8;');
   };
 
@@ -414,6 +431,8 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
         wk === 3 ? 'Máxima densidad y estímulo neuromuscular (RIR 0-1).' :
         'Reducción de volumen al 50% (RIR 3-4), recuperación de receptores.';
 
+      const weekNutrition = calculateNutritionPeriodSummary(weekLogs);
+
       return {
         weekNum: wk,
         microcycleName,
@@ -422,6 +441,7 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
         avgFatigue,
         avgDOMS,
         avgSleep,
+        weekNutrition,
         logsCount: weekLogs.length,
         completedCount: completedCount || (wk === 4 ? 3 : 4),
         totalCount: totalCount || 4,
@@ -724,6 +744,10 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
   const avgSleep = readinessDaysCount > 0 ? (totalSleep / readinessDaysCount).toFixed(1) : '7.7';
   const energyPercent = Math.round((Number(avgEnergy) / 5) * 100);
 
+  const nutritionPeriodSummary = useMemo(() => {
+    return calculateNutritionPeriodSummary(effectiveReadiness);
+  }, [effectiveReadiness]);
+
   // Period label descriptor
   const getSelectedPeriodTitle = () => {
     const macroStr = `Macrociclo ${selectedMacrocycleId}`;
@@ -871,19 +895,22 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
         {/* Top Executive Dashboard Cockpit: Energy & Readiness + Core Workout KPIs (Kg, Series, RPE/RIR) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
           
-          {/* 1. DISPONIBILIDAD DE ENERGÍA & RECUPERACIÓN (FULL TOP CARD) */}
+          {/* 1. DISPONIBILIDAD ENERGÉTICA, RECUPERACIÓN & NUTRICIÓN INTEGRAL */}
           <div className="lg:col-span-7 bg-[#18181b] rounded-xl border border-[rgba(242,242,242,0.08)] p-4 flex flex-col justify-between space-y-3 shadow-xs">
             <div className="flex justify-between items-start border-b border-[rgba(242,242,242,0.08)] pb-2.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[rgba(255,107,0,0.12)] text-[#ff6b00] border border-[rgba(255,107,0,0.3)] flex items-center justify-center shrink-0">
                   <Zap className="w-4 h-4 fill-[#ff6b00]" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-tight text-[#f2f2f2]">
-                    Disponibilidad de Energía & Recuperación
+                  <h4 className="text-xs font-black uppercase tracking-tight text-[#f2f2f2] flex items-center gap-1.5">
+                    <span>Disponibilidad Energética, Recuperación & Nutrición</span>
+                    <span className="text-[9px] bg-[rgba(255,107,0,0.15)] text-[#ff6b00] font-bold px-1.5 py-0.5 rounded">
+                      Biofeedback + 4 Comidas
+                    </span>
                   </h4>
                   <span className="text-[10px] text-[#71717a] block">
-                    Readiness Score promedio del ciclo
+                    Monitoreo integrado del atleta en {getSelectedPeriodTitle()}
                   </span>
                 </div>
               </div>
@@ -898,41 +925,122 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
               </div>
             </div>
 
-            {/* 4 Core Recovery Indicators */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-              <div className="p-2 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)]">
-                <span className="text-[9px] uppercase font-bold text-[#71717a] block">Fatiga</span>
-                <span className="text-xs font-black text-[#f2f2f2]">{avgFatigue}/5</span>
-                <span className="text-[9px] text-[#22c55e] block font-semibold">Baja ✓</span>
+            {/* 3 Unified Pillars: Energía, Recuperación, Nutrición */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              
+              {/* Pilar 1: Disponibilidad Energética */}
+              <div className="p-2.5 bg-[#141417] rounded-lg border border-[rgba(255,107,0,0.2)] flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] uppercase font-bold text-[#ff6b00] tracking-wider">
+                    Disponibilidad Energética
+                  </span>
+                  <Zap className="w-3 h-3 text-[#ff6b00] fill-[#ff6b00]" />
+                </div>
+                <div className="my-1">
+                  <span className="text-base font-black text-[#f2f2f2]">⚡ {avgEnergy}</span>
+                  <span className="text-[10px] text-[#71717a] font-bold"> / 5.0</span>
+                  <div className="w-full bg-[#18181b] h-1.5 rounded-full overflow-hidden mt-1">
+                    <div className="bg-[#ff6b00] h-full rounded-full" style={{ width: `${energyPercent}%` }}></div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-[9px] text-[#71717a] pt-1 border-t border-[rgba(242,242,242,0.06)]">
+                  <span>Reserva SNC:</span>
+                  <span className="text-[#22c55e] font-bold">Alta ({energyPercent}%)</span>
+                </div>
               </div>
 
-              <div className="p-2 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)]">
-                <span className="text-[9px] uppercase font-bold text-[#71717a] block">DOMS</span>
-                <span className="text-xs font-black text-[#f2f2f2]">{avgSoreness}/5</span>
-                <span className="text-[9px] text-[#22c55e] block font-semibold">Adaptado</span>
+              {/* Pilar 2: Recuperación Neuromuscular (Sueño, Fatiga, DOMS) */}
+              <div className="p-2.5 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)] flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] uppercase font-bold text-[#71717a] tracking-wider">
+                    Recuperación & Sueño
+                  </span>
+                  <Moon className="w-3 h-3 text-[#a1a1aa]" />
+                </div>
+                <div className="my-1 space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#71717a]">Sueño:</span>
+                    <strong className="text-[#f2f2f2]">{avgSleep}h <span className="text-[9px] text-[#22c55e]">(Anabólico)</span></strong>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#71717a]">Fatiga:</span>
+                    <strong className="text-[#f2f2f2]">{avgFatigue}/5 <span className="text-[9px] text-[#22c55e]">(Baja ✓)</span></strong>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#71717a]">DOMS:</span>
+                    <strong className="text-[#f2f2f2]">{avgSoreness}/5 <span className="text-[9px] text-[#22c55e]">(Adaptado)</span></strong>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-[9px] text-[#71717a] pt-1 border-t border-[rgba(242,242,242,0.06)]">
+                  <span>Miofibrilar:</span>
+                  <span className="text-[#22c55e] font-bold">Recuperado</span>
+                </div>
               </div>
 
-              <div className="p-2 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)]">
-                <span className="text-[9px] uppercase font-bold text-[#71717a] block">Sueño</span>
-                <span className="text-xs font-black text-[#f2f2f2]">{avgSleep}h</span>
-                <span className="text-[9px] text-[#22c55e] block font-semibold">Anabólico</span>
-              </div>
+              {/* Pilar 3: Rutina Alimentaria (4 Comidas & Semáforo) */}
+              <div className="p-2.5 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)] flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] uppercase font-bold text-[#71717a] tracking-wider">
+                    Nutrición (4 Comidas)
+                  </span>
+                  <Utensils className="w-3 h-3 text-[#ff6b00]" />
+                </div>
+                <div className="my-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-black text-[#f2f2f2]">
+                      {nutritionPeriodSummary.avgMealsPerDay} <span className="text-[10px] text-[#71717a]">/ 4 com.</span>
+                    </span>
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 ${
+                      nutritionPeriodSummary.dominantStatus === 'VERDE'
+                        ? 'bg-[rgba(34,197,94,0.15)] text-[#22c55e] border border-[rgba(34,197,94,0.3)]'
+                        : nutritionPeriodSummary.dominantStatus === 'AMARILLO'
+                        ? 'bg-[rgba(234,179,8,0.15)] text-[#eab308] border border-[rgba(234,179,8,0.3)]'
+                        : 'bg-[rgba(239,68,68,0.15)] text-[#ef4444] border border-[rgba(239,68,68,0.3)]'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        nutritionPeriodSummary.dominantStatus === 'VERDE' ? 'bg-[#22c55e]' :
+                        nutritionPeriodSummary.dominantStatus === 'AMARILLO' ? 'bg-[#eab308]' : 'bg-[#ef4444]'
+                      }`} />
+                      {nutritionPeriodSummary.dominantStatus === 'VERDE' ? 'Verde (4/4)' :
+                       nutritionPeriodSummary.dominantStatus === 'AMARILLO' ? 'Amarillo' : 'Rojo'}
+                    </span>
+                  </div>
 
-              <div className="p-2 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)]">
-                <span className="text-[9px] uppercase font-bold text-[#71717a] block">Adherencia</span>
-                <span className="text-xs font-black text-[#ff6b00]">{adherencePct}%</span>
-                <span className="text-[9px] text-[#ff6b00] block font-semibold">Excelente</span>
+                  {/* 4 Meals Icons / Indicators */}
+                  <div className="grid grid-cols-4 gap-1 mt-1 text-center">
+                    <div className="bg-[#18181b] py-0.5 rounded border border-[rgba(242,242,242,0.06)]" title="Desayuno">
+                      <span className="text-[8px] block font-bold text-[#71717a]">DES</span>
+                      <span className="text-[9px] text-[#22c55e] font-bold">✓</span>
+                    </div>
+                    <div className="bg-[#18181b] py-0.5 rounded border border-[rgba(242,242,242,0.06)]" title="Almuerzo">
+                      <span className="text-[8px] block font-bold text-[#71717a]">ALM</span>
+                      <span className="text-[9px] text-[#22c55e] font-bold">✓</span>
+                    </div>
+                    <div className="bg-[#18181b] py-0.5 rounded border border-[rgba(242,242,242,0.06)]" title="Merienda">
+                      <span className="text-[8px] block font-bold text-[#71717a]">MER</span>
+                      <span className="text-[9px] text-[#22c55e] font-bold">✓</span>
+                    </div>
+                    <div className="bg-[#18181b] py-0.5 rounded border border-[rgba(242,242,242,0.06)]" title="Cena">
+                      <span className="text-[8px] block font-bold text-[#71717a]">CEN</span>
+                      <span className="text-[9px] text-[#22c55e] font-bold">✓</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-[9px] text-[#71717a] pt-1 border-t border-[rgba(242,242,242,0.06)]">
+                  <span>Adherencia Nutricional:</span>
+                  <span className="text-[#ff6b00] font-bold">{nutritionPeriodSummary.adherenceRate}%</span>
+                </div>
               </div>
             </div>
 
-            {/* Load vs Tolerance Correlation */}
+            {/* Load vs Tolerance vs Nutrition Correlation */}
             <div className="p-2 bg-[#141417] rounded-lg border border-[rgba(242,242,242,0.08)] text-[11px] text-[#a1a1aa] space-y-0.5">
               <div className="flex items-center gap-1.5 font-bold text-[#f2f2f2] text-[10px]">
                 <Activity className="w-3.5 h-3.5 text-[#ff6b00]" />
-                <span>Correlación de Carga & Tolerancia:</span>
+                <span>Correlación Integrada Carga • Energía • Recuperación • Nutrición:</span>
               </div>
               <p className="leading-tight text-[10px] text-[#71717a]">
-                El atleta cuenta con suficiente reserva neuromuscular para sostener las series efectivas en RIR 1-2 sin acumular sobreentrenamiento.
+                El aporte de las 4 comidas diarias y las {avgSleep}h de sueño anabólico reponen los depósitos de glucógeno y la homeostasis del SNC, manteniendo una reserva energética del {energyPercent}% para tolerar el volumen de sobrecarga en RIR 1-2.
               </p>
             </div>
           </div>
@@ -1112,7 +1220,7 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
             <span className="text-[11px] font-bold text-[#f2f2f2] block">
               {activeTab === 'analytics' && '1. Contabilización de Volumen & Balance'}
               {activeTab === 'comparison' && '2. Panel Global de Ejercicios & Comparador'}
-              {activeTab === 'energy' && '3. Estado de Energía & Recuperación'}
+              {activeTab === 'energy' && '3. Disponibilidad Energética, Recuperación & Nutrición'}
               {activeTab === 'schedule' && '4. Planificación Técnica por Día Asignado'}
               {activeTab === 'cardio' && '5. Análisis de Cardio & Acondicionamiento'}
             </span>
@@ -1487,8 +1595,8 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Energy & Readiness Summary 4-Column Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Energy & Readiness Summary 5-Column Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             
             {/* 1. Nivel de Energía */}
             <div className="bg-[#141417] p-3.5 rounded-xl border border-[rgba(255,107,0,0.2)] shadow-xs">
@@ -1582,6 +1690,54 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
               </div>
             </div>
 
+            {/* 5. Rutina Alimentaria (4 Comidas) */}
+            <div className="bg-[#141417] p-3.5 rounded-xl border border-[rgba(242,242,242,0.08)] shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-[#71717a] tracking-wider">
+                    Rutina Alimentaria
+                  </span>
+                  <Utensils className="w-3.5 h-3.5 text-[#ff6b00]" />
+                </div>
+                <div className="my-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1.5 ${
+                      nutritionPeriodSummary.dominantStatus === 'VERDE'
+                        ? 'bg-[rgba(34,197,94,0.14)] text-[#22c55e] border border-[rgba(34,197,94,0.3)]'
+                        : nutritionPeriodSummary.dominantStatus === 'AMARILLO'
+                        ? 'bg-[rgba(234,179,8,0.14)] text-[#eab308] border border-[rgba(234,179,8,0.3)]'
+                        : 'bg-[rgba(239,68,68,0.14)] text-[#ef4444] border border-[rgba(239,68,68,0.3)]'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${
+                        nutritionPeriodSummary.dominantStatus === 'VERDE' ? 'bg-[#22c55e]' :
+                        nutritionPeriodSummary.dominantStatus === 'AMARILLO' ? 'bg-[#eab308]' : 'bg-[#ef4444]'
+                      }`} />
+                      {nutritionPeriodSummary.dominantStatus === 'VERDE' ? 'Verde (4 Comidas)' :
+                       nutritionPeriodSummary.dominantStatus === 'AMARILLO' ? 'Amarillo (3-2 Com.)' : 'Rojo (<2 Com.)'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a1a1aa] mt-1.5 leading-tight">
+                    {nutritionPeriodSummary.avgMealsPerDay} / 4 comidas promedio ({nutritionPeriodSummary.adherenceRate}% adherencia).
+                  </p>
+                  <div className="flex items-center gap-1.5 text-[10px] mt-1 text-[#71717a]">
+                    <span>🟢 {nutritionPeriodSummary.daysVerde}d</span>
+                    <span>•</span>
+                    <span>🟡 {nutritionPeriodSummary.daysAmarillo}d</span>
+                    <span>•</span>
+                    <span>🔴 {nutritionPeriodSummary.daysRojo}d</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-[rgba(242,242,242,0.08)] flex justify-between text-[10px]">
+                <span className="text-[#71717a]">Almuerzo & Cena:</span>
+                <span className="text-[#22c55e] font-bold">
+                  {nutritionPeriodSummary.totalLoggedDays > 0
+                    ? `${Math.round((nutritionPeriodSummary.lunchCount / nutritionPeriodSummary.totalLoggedDays) * 100)}% Cubiertos`
+                    : '100%'}
+                </span>
+              </div>
+            </div>
+
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -1657,7 +1813,7 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
                       </div>
 
                       {/* Microcycle Stats Row */}
-                      <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] pt-1 border-t border-[rgba(242,242,242,0.08)]">
+                      <div className="grid grid-cols-5 gap-1 text-center text-[10px] pt-1 border-t border-[rgba(242,242,242,0.08)]">
                         <div>
                           <span className="text-[#71717a] block text-[8px] uppercase">Fatiga</span>
                           <span className="font-bold text-[#f2f2f2]">{weekItem.avgFatigue}/5</span>
@@ -1669,6 +1825,16 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
                         <div>
                           <span className="text-[#71717a] block text-[8px] uppercase">Sueño</span>
                           <span className="font-bold text-[#f2f2f2]">{weekItem.avgSleep}h</span>
+                        </div>
+                        <div>
+                          <span className="text-[#71717a] block text-[8px] uppercase">Nutrición</span>
+                          <span className={`font-bold ${
+                            weekItem.weekNutrition?.dominantStatus === 'VERDE' ? 'text-[#22c55e]' :
+                            weekItem.weekNutrition?.dominantStatus === 'AMARILLO' ? 'text-[#eab308]' : 'text-[#ef4444]'
+                          }`}>
+                            {weekItem.weekNutrition?.dominantStatus === 'VERDE' ? '🟢 4/4' :
+                             weekItem.weekNutrition?.dominantStatus === 'AMARILLO' ? '🟡 3/4' : '🔴 <2'}
+                          </span>
                         </div>
                         <div>
                           <span className="text-[#71717a] block text-[8px] uppercase">Sesiones</span>
@@ -1788,6 +1954,72 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
                             <span className="font-bold text-[#22c55e]">{log.mood || 'Bueno'}</span>
                           </div>
                         </div>
+
+                        {/* Rutina Alimentaria Daily Breakdown */}
+                        {log.nutritionMeals && (() => {
+                          const mealEval = evaluateNutritionMeals(log.nutritionMeals);
+                          return (
+                            <div className="bg-[#141417] p-2.5 rounded-lg border border-[rgba(242,242,242,0.08)] flex flex-col gap-1.5">
+                              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <Utensils className="w-3.5 h-3.5 text-[#ff6b00]" />
+                                  <span className="text-[11px] font-bold text-[#f2f2f2]">Rutina Alimentaria:</span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${mealEval.badgeBg} ${mealEval.badgeText} ${mealEval.badgeBorder}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${mealEval.badgeDot}`} />
+                                    <span>{mealEval.label}</span>
+                                  </span>
+                                </div>
+
+                                <span className="text-[10px] text-[rgba(242,242,242,0.5)]">
+                                  {mealEval.totalMeals}/4 Comidas
+                                </span>
+                              </div>
+
+                              {/* 4 Meals chips */}
+                              <div className="grid grid-cols-4 gap-1 text-[10px]">
+                                <div className={`py-1 px-1.5 rounded text-center border font-medium ${
+                                  log.nutritionMeals.breakfast
+                                    ? 'bg-[rgba(34,197,94,0.12)] text-[#22c55e] border-[rgba(34,197,94,0.25)]'
+                                    : 'bg-[#1c1c21] text-[rgba(242,242,242,0.3)] border-[rgba(242,242,242,0.06)]'
+                                }`}>
+                                  <span>{log.nutritionMeals.breakfast ? '✓' : '✕'} Desayuno</span>
+                                </div>
+
+                                <div className={`py-1 px-1.5 rounded text-center border font-medium ${
+                                  log.nutritionMeals.lunch
+                                    ? 'bg-[rgba(34,197,94,0.12)] text-[#22c55e] border-[rgba(34,197,94,0.25)]'
+                                    : 'bg-[#1c1c21] text-[rgba(242,242,242,0.3)] border-[rgba(242,242,242,0.06)]'
+                                }`}>
+                                  <span>{log.nutritionMeals.lunch ? '✓' : '✕'} Almuerzo ★</span>
+                                </div>
+
+                                <div className={`py-1 px-1.5 rounded text-center border font-medium ${
+                                  log.nutritionMeals.snack
+                                    ? 'bg-[rgba(34,197,94,0.12)] text-[#22c55e] border-[rgba(34,197,94,0.25)]'
+                                    : 'bg-[#1c1c21] text-[rgba(242,242,242,0.3)] border-[rgba(242,242,242,0.06)]'
+                                }`}>
+                                  <span>{log.nutritionMeals.snack ? '✓' : '✕'} Merienda</span>
+                                </div>
+
+                                <div className={`py-1 px-1.5 rounded text-center border font-medium ${
+                                  log.nutritionMeals.dinner
+                                    ? 'bg-[rgba(34,197,94,0.12)] text-[#22c55e] border-[rgba(34,197,94,0.25)]'
+                                    : 'bg-[#1c1c21] text-[rgba(242,242,242,0.3)] border-[rgba(242,242,242,0.06)]'
+                                }`}>
+                                  <span>{log.nutritionMeals.dinner ? '✓' : '✕'} Cena ★</span>
+                                </div>
+                              </div>
+
+                              {/* Sensaciones al comer */}
+                              {log.nutritionNotes && (
+                                <div className="text-[10px] text-[#22c55e] bg-[rgba(34,197,94,0.05)] p-1.5 rounded border border-[rgba(34,197,94,0.15)] flex items-start gap-1.5">
+                                  <span className="font-bold shrink-0">Sensaciones:</span>
+                                  <span className="italic text-[#f2f2f2]">"{log.nutritionNotes}"</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Notes */}
                         {log.notes && (
@@ -2036,6 +2268,7 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
         macrocycleName={macrocycles.find(m => m.id === selectedMacrocycleId)?.name}
         selectedMonth={selectedMonth}
         selectedWeek={selectedWeek}
+        selectedPeriodTitle={getSelectedPeriodTitle()}
         initialTab={activeTab}
       />
 
