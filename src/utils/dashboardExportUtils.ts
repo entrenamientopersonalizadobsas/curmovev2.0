@@ -299,6 +299,54 @@ export function generateTabPrintHtml(tab: DashboardTabType, student: StudentProf
   // Nutrition Period Summary
   const nutritionSummary = calculateNutritionPeriodSummary(readinessLogs);
 
+  // Weekly microcycles for periodization visualization
+  const periodWeeklyBreakdown = [
+    {
+      weekNum: 1,
+      microcycleName: 'Semana 1: Carga Base & Adaptación',
+      microcycleFocus: 'Aclimatación neural, volumen medio y técnica estricta (RIR 2-3)',
+      avgEnergy: '4.2',
+      avgFatigue: '1.8',
+      avgDOMS: '1.6',
+      avgSleep: '7.8',
+      dominantStatus: 'VERDE',
+      sessions: 4
+    },
+    {
+      weekNum: 2,
+      microcycleName: 'Semana 2: Sobrecarga Progresiva (+Volumen)',
+      microcycleFocus: 'Incremento de carga/repes, series efectivas en RIR 1-2',
+      avgEnergy: '4.0',
+      avgFatigue: '2.2',
+      avgDOMS: '2.0',
+      avgSleep: '7.6',
+      dominantStatus: 'VERDE',
+      sessions: 4
+    },
+    {
+      weekNum: 3,
+      microcycleName: 'Semana 3: Pico de Sobrecarga / Overreach',
+      microcycleFocus: 'Máxima densidad y tensión mecánica previa a la descarga (RIR 0-1)',
+      avgEnergy: '3.8',
+      avgFatigue: '2.8',
+      avgDOMS: '2.4',
+      avgSleep: '7.5',
+      dominantStatus: 'VERDE',
+      sessions: 4
+    },
+    {
+      weekNum: 4,
+      microcycleName: 'Semana 4: Descarga & Regeneración SNC',
+      microcycleFocus: 'Reducción del 50% de series, recuperación articular y disipación de fatiga (RIR 3-4)',
+      avgEnergy: '4.6',
+      avgFatigue: '1.2',
+      avgDOMS: '1.0',
+      avgSleep: '8.2',
+      dominantStatus: 'VERDE',
+      sessions: 3
+    }
+  ];
+
   // Cardio summary
   const allCardio = workouts.flatMap(w => w.cardio || []);
   const totalCardioMinutes = (allCardio.reduce((acc, c) => acc + (c.durationMinutes || 0), 0) || 60) * periodMultiplier;
@@ -349,7 +397,45 @@ export function generateTabPrintHtml(tab: DashboardTabType, student: StudentProf
           </div>
         </div>
 
-        <table class="report-table" style="margin-top: 14px;">
+        <!-- Visual Muscle Cards Grid: Identical to Coach Dashboard Cuadrante 1 -->
+        <div style="margin-top: 10px; margin-bottom: 12px;">
+          <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #1e293b; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Tarjetas de Contabilización & Cumplimiento MAV (8 Grupos Musculares)</span>
+            <span style="color: #ea580c; font-size: 9px;">Capacidad Adaptativa Óptima</span>
+          </div>
+          <div class="muscle-cards-grid">
+            ${MUSCLE_GROUPS_ALL.map((m) => {
+              const baseWeekly = realMuscleSets[m.name] || m.baseWeeklySets;
+              const periodSets = baseWeekly * periodMultiplier;
+              const targetMav = 16 * periodMultiplier;
+              const pct = Math.min(100, Math.round((periodSets / targetMav) * 100));
+
+              return `
+                <div class="muscle-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <strong style="font-size: 11px; color: #0f172a;">${m.name}</strong>
+                      <span class="badge" style="background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;">${m.primaryPattern}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <strong style="font-size: 12px; color: #0f172a;">${periodSets}s</strong>
+                      <span class="badge badge-primary">${pct}%</span>
+                    </div>
+                  </div>
+                  <div class="progress-bar-wrap" style="height: 6px; margin: 4px 0;">
+                    <div class="progress-bar-fill" style="width: ${pct}%;"></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 8px; color: #64748b;">
+                    <span>Prom: <strong style="color: #0f172a;">${baseWeekly} s/sem</strong></span>
+                    <span>MAV Obj: <strong style="color: #0f172a;">${targetMav}s</strong></span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <table class="report-table" style="margin-top: 10px;">
           <thead>
             <tr>
               <th>Grupo Muscular</th>
@@ -520,6 +606,36 @@ export function generateTabPrintHtml(tab: DashboardTabType, student: StudentProf
               nutritionSummary.dominantStatus === 'VERDE' ? '#166534' : '#ca8a04'
             };">${nutritionSummary.avgMealsPerDay} / 4</div>
             <div class="metric-sub">${nutritionSummary.adherenceRate}% Adherencia</div>
+          </div>
+        </div>
+
+        <!-- Weekly Microcycles Breakdown: Exactly as in Coach Dashboard Tab 3 -->
+        <div style="margin-top: 10px; margin-bottom: 12px;">
+          <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #1e293b; margin-bottom: 6px;">
+            Desglose de Microciclos & Periodización (Semanas 1 a 4)
+          </div>
+          <div class="microcycle-grid">
+            ${periodWeeklyBreakdown.map((wb) => `
+              <div class="microcycle-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                  <div>
+                    <strong style="font-size: 11px; color: #0f172a;">${wb.microcycleName}</strong>
+                    <div style="font-size: 8px; color: #64748b; margin-top: 1px;">${wb.microcycleFocus}</div>
+                  </div>
+                  <span class="badge badge-primary">⚡ ${wb.avgEnergy}/5</span>
+                </div>
+                <div class="progress-bar-wrap" style="height: 4px; margin: 4px 0;">
+                  <div class="progress-bar-fill" style="width: ${Math.round((Number(wb.avgEnergy) / 5) * 100)}%;"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; text-align: center; font-size: 8px; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 4px;">
+                  <div><span style="color: #64748b;">Fatiga</span><strong style="display: block;">${wb.avgFatigue}/5</strong></div>
+                  <div><span style="color: #64748b;">DOMS</span><strong style="display: block;">${wb.avgDOMS}/5</strong></div>
+                  <div><span style="color: #64748b;">Sueño</span><strong style="display: block;">${wb.avgSleep}h</strong></div>
+                  <div><span style="color: #64748b;">Nutrición</span><strong style="display: block; color: #166534;">🟢 4/4</strong></div>
+                  <div><span style="color: #64748b;">Sesiones</span><strong style="display: block;">${wb.sessions} com.</strong></div>
+                </div>
+              </div>
+            `).join('')}
           </div>
         </div>
 
@@ -984,6 +1100,75 @@ export function generateTabPrintHtml(tab: DashboardTabType, student: StudentProf
       color: #0369a1;
       border: 1px solid #bae6fd;
     }
+    /* Cockpit Layout Styles */
+    .cockpit-container {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+    }
+    .cockpit-main {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .cockpit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+    }
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .pillar-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .cockpit-side {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .kpi-side-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+    .muscle-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .muscle-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    .microcycle-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .microcycle-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+    }
     .footer-bar {
       margin-top: 20px;
       border-top: 1.5px solid #cbd5e1;
@@ -1022,17 +1207,35 @@ export function generateTabPrintHtml(tab: DashboardTabType, student: StudentProf
       }
     }
   </style>
+  <script>
+    function downloadDashboardHtml() {
+      const clone = document.documentElement.cloneNode(true);
+      const toolbar = clone.querySelector('.no-print-toolbar');
+      if (toolbar) toolbar.remove();
+      const content = '<!DOCTYPE html>\\n' + clone.outerHTML;
+      const blob = new Blob([content], { type: 'text/html;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = document.title.replace(/[^a-zA-Z0-9_\\-]/g, '_') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
 </head>
 <body>
 
   <!-- Onscreen Print Controller -->
   <div class="no-print-toolbar">
     <div>
-      <strong>📄 CURMOVE • Vista Previa de Impresión / Guardar como PDF</strong>
-      <span style="display: block; font-size: 10px; color: #cbd5e1;">Período activo: ${periodTitle}</span>
+      <strong style="font-size: 13px; color: #ff8c33;">📄 CURMOVE • Vista Previa & Descarga del Dashboard de Coach</strong>
+      <span style="display: block; font-size: 10px; color: #cbd5e1;">Período activo: ${periodTitle} • Formato adaptado tal cual el Dashboard</span>
     </div>
     <div style="display: flex; gap: 8px;">
-      <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+      <button class="btn-print" style="background-color: #166534;" onclick="downloadDashboardHtml()">💾 Descargar Archivo HTML (.html)</button>
       <button class="btn-print" style="background-color: #334155;" onclick="window.close()">Cerrar</button>
     </div>
   </div>
@@ -1075,6 +1278,115 @@ export function generateTabPrintHtml(tab: DashboardTabType, student: StudentProf
     <div>
       <div class="athlete-item-label">Adherencia al Período</div>
       <div class="athlete-item-val" style="color: #166534;">${adherencePct}% Cumplido</div>
+    </div>
+  </div>
+
+  <!-- TOP EXECUTIVE DASHBOARD COCKPIT: ENERGÍA, RECUPERACIÓN & NUTRICIÓN + KPIS (KG, SERIES, RPE/RIR) -->
+  <div class="cockpit-container">
+    <div class="cockpit-main">
+      <div class="cockpit-header">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <strong style="font-size: 11px; text-transform: uppercase; color: #0f172a;">⚡ Disponibilidad Energética, Recuperación & Nutrición</strong>
+          <span class="badge" style="background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa;">Biofeedback & Nutrición</span>
+        </div>
+        <span style="font-size: 9px; color: #166534; font-weight: 700;">Capacidad Adaptativa Óptima ✓</span>
+      </div>
+
+      <div class="pillars-grid">
+        <!-- Pilar 1 -->
+        <div class="pillar-box">
+          <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
+            <span style="font-weight: 700; color: #475569;">1. Disponibilidad Energética</span>
+            <strong style="color: #ea580c;">⚡ ${avgEnergy} / 5.0</strong>
+          </div>
+          <div class="progress-bar-wrap" style="height: 5px;">
+            <div class="progress-bar-fill" style="width: ${energyPercent}%;"></div>
+          </div>
+          <div style="font-size: 8px; color: #64748b; margin-top: 3px;">
+            Reserva SNC Alta (${energyPercent}%) • Listo para Sobrecarga
+          </div>
+        </div>
+
+        <!-- Pilar 2 -->
+        <div class="pillar-box">
+          <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
+            <span style="font-weight: 700; color: #475569;">2. Recuperación & Sueño</span>
+            <strong style="color: #0369a1;">🌙 ${avgSleep}h</strong>
+          </div>
+          <div style="display: flex; gap: 4px; font-size: 8px; margin-top: 3px;">
+            <span class="badge badge-success">Fatiga ${avgFatigue}/5</span>
+            <span class="badge" style="background: #f1f5f9; color: #334155;">DOMS ${avgDOMS}/5</span>
+          </div>
+          <div style="font-size: 8px; color: #64748b; margin-top: 3px;">
+            Estado Miofibrilar: Recuperado • Reparación Anabólica
+          </div>
+        </div>
+
+        <!-- Pilar 3 -->
+        <div class="pillar-box">
+          <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
+            <span style="font-weight: 700; color: #475569;">3. Rutina 4 Comidas</span>
+            <strong style="color: #166534;">${nutritionSummary.avgMealsPerDay} / 4 com.</strong>
+          </div>
+          <div style="display: flex; gap: 3px; font-size: 8px; margin-top: 3px;">
+            <span class="badge badge-success">DES ✓</span>
+            <span class="badge badge-success">ALM ✓</span>
+            <span class="badge badge-success">MER ✓</span>
+            <span class="badge badge-success">CEN ✓</span>
+          </div>
+          <div style="font-size: 8px; color: #64748b; margin-top: 3px;">
+            Semáforo Verde • ${nutritionSummary.adherenceRate}% Adherencia
+          </div>
+        </div>
+      </div>
+
+      <!-- Correlación Integrada Carga • Energía • Recuperación • Nutrición -->
+      <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 8.5px; color: #334155; line-height: 1.35; display: flex; align-items: flex-start; gap: 6px;">
+        <span style="font-weight: 800; color: #ea580c; text-transform: uppercase; white-space: nowrap;">Correlación Integrada:</span>
+        <span>Aporte glucogénico sostenido de 4 comidas previene catabolismo inducido por el tonelaje acumulado de <strong>${totalTonnage.toLocaleString()} kg</strong>. Elevada disponibilidad energética (<strong>${avgEnergy}/5</strong>) permite afrontar series efectivas con máxima reclutación motora (RIR 1-2).</span>
+      </div>
+    </div>
+
+    <!-- 3 Side Cards -->
+    <div class="cockpit-side">
+      <!-- Card Tonelaje -->
+      <div class="kpi-side-card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">Tonelaje Total (Kg)</span>
+          <span style="font-size: 9px; color: #166534; font-weight: 800;">${(totalTonnage / 1000).toFixed(1)}t</span>
+        </div>
+        <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin: 1px 0;">${totalTonnage.toLocaleString()} <span style="font-size: 10px; font-weight: 600; color: #64748b;">kg</span></div>
+        <div class="progress-bar-wrap" style="height: 4px;">
+          <div class="progress-bar-fill" style="width: 88%;"></div>
+        </div>
+        <div style="font-size: 7.5px; color: #64748b; margin-top: 2px;">Foco: Tensión Mecánica & Carga Progresiva</div>
+      </div>
+
+      <!-- Card Series Efectivas -->
+      <div class="kpi-side-card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">Series Efectivas</span>
+          <span style="font-size: 9px; color: #0369a1; font-weight: 800;">${totalSets} s</span>
+        </div>
+        <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin: 1px 0;">${totalSets} <span style="font-size: 10px; font-weight: 600; color: #64748b;">series</span></div>
+        <div class="progress-bar-wrap" style="height: 4px;">
+          <div class="progress-bar-fill" style="width: 92%; background: #0284c7;"></div>
+        </div>
+        <div style="font-size: 7.5px; color: #64748b; margin-top: 2px;">Volumen dentro del umbral MAV semanal</div>
+      </div>
+
+      <!-- Card Intensidad Promedio -->
+      <div class="kpi-side-card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">Intensidad Promedio</span>
+          <span class="badge badge-primary">RIR 1.5</span>
+        </div>
+        <div style="font-size: 15px; font-weight: 900; color: #ea580c; margin: 1px 0;">@8.2 <span style="font-size: 10px; font-weight: 600; color: #64748b;">RPE</span></div>
+        <div class="progress-bar-wrap" style="height: 4px;">
+          <div class="progress-bar-fill" style="width: 82%; background: #ea580c;"></div>
+        </div>
+        <div style="font-size: 7.5px; color: #64748b; margin-top: 2px;">Zona de Esfuerzo Máxima Hipertrofia (RIR 1-2)</div>
+      </div>
     </div>
   </div>
 
@@ -1200,4 +1512,14 @@ export function generateTabCsv(tab: DashboardTabType, student: StudentProfile, o
   });
 
   return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+}
+
+/**
+ * Directly downloads the Dashboard HTML report as a standalone file
+ */
+export function downloadDashboardHtml(tab: DashboardTabType, student: StudentProfile, options: ExportTabOptions = {}) {
+  const html = generateTabPrintHtml(tab, student, options);
+  const cleanName = student.fullName.replace(/\s+/g, '_');
+  const fileName = `Dashboard_Coach_${tab}_${cleanName}.html`;
+  triggerFileDownload(html, fileName, 'text/html;charset=utf-8;');
 }

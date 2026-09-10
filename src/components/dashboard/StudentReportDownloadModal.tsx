@@ -13,14 +13,17 @@ import {
   TrendingUp,
   Layers,
   HeartPulse,
-  Scale
+  Scale,
+  Globe,
+  FileText
 } from 'lucide-react';
 import { 
   DashboardTabType, 
   generateTabPrintHtml, 
   generateTabCsv, 
   openPrintDialog, 
-  triggerFileDownload 
+  triggerFileDownload,
+  downloadDashboardHtml
 } from '../../utils/dashboardExportUtils';
 
 interface StudentReportDownloadModalProps {
@@ -45,7 +48,7 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
   onClose
 }) => {
   const [selectedTargetTab, setSelectedTargetTab] = useState<DashboardTabType>(initialTab);
-  const [downloadFormat, setDownloadFormat] = useState<'print_pdf' | 'csv' | 'json'>('print_pdf');
+  const [downloadFormat, setDownloadFormat] = useState<'print_pdf' | 'html' | 'csv' | 'json'>('print_pdf');
   const [downloadSuccessMessage, setDownloadSuccessMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -99,6 +102,9 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
       const html = generateTabPrintHtml(selectedTargetTab, student, exportOptions);
       openPrintDialog(html, `Dossier_${selectedTargetTab}_${student.fullName.replace(/\s+/g, '_')}`);
       setDownloadSuccessMessage('¡Dossier generado con las métricas del período seleccionado!');
+    } else if (downloadFormat === 'html') {
+      downloadDashboardHtml(selectedTargetTab, student, exportOptions);
+      setDownloadSuccessMessage('¡Archivo HTML del Dashboard descargado con éxito!');
     } else if (downloadFormat === 'csv') {
       const csv = generateTabCsv(selectedTargetTab, student, exportOptions);
       triggerFileDownload(csv, `Planilla_${selectedTargetTab}_${student.fullName.replace(/\s+/g, '_')}.csv`, 'text/csv;charset=utf-8;');
@@ -107,6 +113,29 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
       const jsonStr = JSON.stringify(student, null, 2);
       triggerFileDownload(jsonStr, `Respaldo_${student.fullName.replace(/\s+/g, '_')}.json`, 'application/json;charset=utf-8;');
       setDownloadSuccessMessage('¡Respaldo JSON descargado con éxito!');
+    }
+
+    setTimeout(() => {
+      setDownloadSuccessMessage(null);
+    }, 3000);
+  };
+
+  // Quick download current view as is
+  const handleQuickDownloadCurrent = (format: 'html' | 'print_pdf') => {
+    const exportOptions = {
+      macrocycleName,
+      selectedMonth,
+      selectedWeek,
+      selectedPeriodTitle: activePeriodTitle
+    };
+
+    if (format === 'html') {
+      downloadDashboardHtml(selectedTargetTab, student, exportOptions);
+      setDownloadSuccessMessage('¡Archivo HTML tal cual está en el Dashboard descargado!');
+    } else {
+      const html = generateTabPrintHtml(selectedTargetTab, student, exportOptions);
+      openPrintDialog(html, `Dashboard_${selectedTargetTab}_${student.fullName.replace(/\s+/g, '_')}`);
+      setDownloadSuccessMessage('¡Abriendo vista de impresión y guardado como PDF!');
     }
 
     setTimeout(() => {
@@ -199,6 +228,39 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
           </span>
         </div>
 
+        {/* Quick Action: Direct Download as is in Coach Dashboard */}
+        <div className="mx-4 sm:mx-5 mt-2.5 p-3 bg-gradient-to-r from-[rgba(255,107,0,0.12)] to-[rgba(34,197,94,0.08)] border border-[rgba(255,107,0,0.35)] rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs">
+            <Globe className="w-5 h-5 text-[#ff6b00] shrink-0" />
+            <div>
+              <span className="text-xs font-black text-[#f2f2f2] block">
+                Descarga Inmediata: Tal cual está en el Dashboard
+              </span>
+              <span className="text-[10px] text-[rgba(242,242,242,0.7)]">
+                Exporta el estado completo con energía, recuperación, nutrición y contabilización muscular
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <button
+              onClick={() => handleQuickDownloadCurrent('html')}
+              className="flex-1 sm:flex-none px-3 py-1.5 bg-[#18181b] hover:bg-[#222227] border border-[rgba(255,107,0,0.4)] text-[#ff6b00] text-[11px] font-black rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              title="Descargar archivo HTML idéntico al dashboard"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Descargar HTML</span>
+            </button>
+            <button
+              onClick={() => handleQuickDownloadCurrent('print_pdf')}
+              className="flex-1 sm:flex-none px-3 py-1.5 bg-[#ff6b00] hover:bg-[#e65e00] text-black text-[11px] font-black rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              title="Imprimir o guardar como PDF"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Guardar PDF</span>
+            </button>
+          </div>
+        </div>
+
         <div className="p-4 sm:p-5 space-y-5">
           {/* Quick Metrics of the Selected Period */}
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -255,7 +317,7 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
             <label className="text-xs font-bold text-[#f2f2f2] uppercase tracking-wider block">
               2. Formato de Exportación
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 onClick={() => setDownloadFormat('print_pdf')}
                 className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
@@ -266,7 +328,20 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
               >
                 <Printer className="w-5 h-5" />
                 <span className="text-xs font-bold">Impresión / PDF</span>
-                <span className="text-[9px] text-[#71717a]">Dossier formateado</span>
+                <span className="text-[9px] text-[#71717a]">Dossier A4</span>
+              </button>
+
+              <button
+                onClick={() => setDownloadFormat('html')}
+                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                  downloadFormat === 'html'
+                    ? 'bg-[rgba(255,107,0,0.15)] border-[#ff6b00] text-[#ff6b00]'
+                    : 'bg-[#18181b] border-[rgba(242,242,242,0.08)] text-[rgba(242,242,242,0.7)] hover:bg-[#1c1c21]'
+                }`}
+              >
+                <Globe className="w-5 h-5" />
+                <span className="text-xs font-bold">HTML Dashboard</span>
+                <span className="text-[9px] text-[#71717a]">Tal cual está</span>
               </button>
 
               <button
@@ -279,7 +354,7 @@ export const StudentReportDownloadModal: React.FC<StudentReportDownloadModalProp
               >
                 <FileSpreadsheet className="w-5 h-5" />
                 <span className="text-xs font-bold">Excel (CSV)</span>
-                <span className="text-[9px] text-[#71717a]">Planilla de datos</span>
+                <span className="text-[9px] text-[#71717a]">Planilla datos</span>
               </button>
 
               <button

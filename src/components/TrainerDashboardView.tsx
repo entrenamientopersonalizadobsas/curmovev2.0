@@ -17,7 +17,8 @@ import {
   generateTabPrintHtml, 
   generateTabCsv, 
   openPrintDialog, 
-  triggerFileDownload 
+  triggerFileDownload,
+  downloadDashboardHtml
 } from '../utils/dashboardExportUtils';
 import { MuscleGroupHierarchyData, PatternMetricDetail, ExerciseMetricDetail } from './dashboard/types';
 import { 
@@ -231,6 +232,16 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
       selectedPeriodTitle: getSelectedPeriodTitle()
     });
     triggerFileDownload(csv, `Planilla_${activeTab}_${student.fullName.replace(/\s+/g, '_')}.csv`, 'text/csv;charset=utf-8;');
+  };
+
+  // Quick download active tab directly as HTML
+  const handleDownloadHtmlCurrentTab = () => {
+    downloadDashboardHtml(activeTab, student, {
+      macrocycleName: macrocycles.find(m => m.id === selectedMacrocycleId)?.name,
+      selectedMonth,
+      selectedWeek,
+      selectedPeriodTitle: getSelectedPeriodTitle()
+    });
   };
 
   // Handle creating/requesting a new macrocycle
@@ -1231,6 +1242,15 @@ export const TrainerDashboardView: React.FC<TrainerDashboardViewProps> = ({
 
           {/* Individual Tab Download Shortcuts */}
           <div className="flex items-center gap-1.5 pl-2 border-l border-[rgba(242,242,242,0.08)]">
+            <button
+              onClick={handleDownloadHtmlCurrentTab}
+              title={`Descargar archivo HTML del Dashboard tal cual está (${activeTab})`}
+              className="p-2 bg-[#18181b] hover:bg-[#1c1c21] text-[#a1a1aa] hover:text-[#f2f2f2] rounded-lg border border-[rgba(242,242,242,0.08)] transition-all cursor-pointer flex items-center gap-1 text-xs"
+            >
+              <Download className="w-3.5 h-3.5 text-[#ff6b00]" />
+              <span className="hidden sm:inline text-[11px] font-bold">HTML</span>
+            </button>
+
             <button
               onClick={handlePrintCurrentTab}
               title={`Imprimir o Guardar PDF de la Solapa Actual (${activeTab})`}
