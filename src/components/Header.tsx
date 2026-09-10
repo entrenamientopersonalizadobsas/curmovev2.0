@@ -1,5 +1,6 @@
 import React from 'react';
 import { ViewMode, StudentProfile } from '../types';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { 
   Activity, 
   Sparkles, 
@@ -177,6 +178,15 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right: Search, Athlete Selector, Mode Switcher & Tools */}
         <div className="flex items-center gap-3">
           
+          {/* Supabase Real-time Sync Status Badge */}
+          <div 
+            title={isSupabaseConfigured() ? "Conectado a Supabase: Sincronización en tiempo real activa" : "Modo Local: Configure VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para sincronización en la nube"}
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1c1c21] border border-[rgba(242,242,242,0.08)] text-[11px] font-semibold text-[rgba(242,242,242,0.65)] select-none"
+          >
+            <span className={`w-2 h-2 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span>{isSupabaseConfigured() ? 'Supabase Sync' : 'Local'}</span>
+          </div>
+
           {/* Quick Search */}
           <div className="relative hidden md:block w-44 lg:w-56">
             <button

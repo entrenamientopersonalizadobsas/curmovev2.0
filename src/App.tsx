@@ -37,7 +37,19 @@ import { RestTimerFloating } from './components/RestTimerFloating';
 import { SaveSessionModal } from './components/SaveSessionModal';
 import { exportRoutineToHTML } from './utils/exportHtml';
 import { supabase } from './lib/supabase';
-import { saveAnthropometry, saveCoachStudent, saveReadiness, saveWorkout } from './lib/trainingPersistence';
+import { 
+  saveAnthropometry, 
+  saveCoachStudent, 
+  saveReadiness, 
+  saveWorkout,
+  insertNewStudent,
+  fetchStudentsFromSupabase,
+  updateStudentInSupabase,
+  fetchExercisesFromSupabase,
+  saveExerciseToSupabase,
+  deleteExerciseFromSupabase,
+  subscribeToRealtimeSync
+} from './lib/trainingPersistence';
 
 export default function App() {
   // Load students from localStorage or initialize with mockData
@@ -129,6 +141,69 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Load remote students and exercise database from Supabase with .select() on startup
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initializeSupabaseData() {
+      // 1. Load students list with .select()
+      try {
+        const remoteStudents = await fetchStudentsFromSupabase();
+        if (isMounted && remoteStudents && remoteStudents.length > 0) {
+          setStudents((prev) => {
+            const has12m = remoteStudents.some(s => s.id === 'student-12m');
+            if (!has12m) {
+              const fresh12m = prev.find(s => s.id === 'student-12m') || INITIAL_STUDENTS.find(s => s.id === 'student-12m');
+              return fresh12m ? [fresh12m, ...remoteStudents] : remoteStudents;
+            }
+            return remoteStudents;
+          });
+        }
+      } catch (err) {
+        console.debug('[Supabase] Init students fetch notice:', err);
+      }
+
+      // 2. Load exercise database with .select()
+      try {
+        const remoteExercises = await fetchExercisesFromSupabase();
+        if (isMounted && remoteExercises && remoteExercises.length > 0) {
+          setExerciseDb(remoteExercises);
+        }
+      } catch (err) {
+        console.debug('[Supabase] Init exercises fetch notice:', err);
+      }
+    }
+
+    initializeSupabaseData();
+
+    // 3. Realtime subscription to synchronize data in real-time across any device
+    const unsubscribeRealtime = subscribeToRealtimeSync({
+      onStudentsChange: async () => {
+        const refreshed = await fetchStudentsFromSupabase();
+        if (isMounted && refreshed && refreshed.length > 0) {
+          setStudents(refreshed);
+        }
+      },
+      onExercisesChange: async () => {
+        const refreshed = await fetchExercisesFromSupabase();
+        if (isMounted && refreshed && refreshed.length > 0) {
+          setExerciseDb(refreshed);
+        }
+      },
+      onWorkoutsChange: async () => {
+        const refreshed = await fetchStudentsFromSupabase();
+        if (isMounted && refreshed && refreshed.length > 0) {
+          setStudents(refreshed);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribeRealtime();
+    };
+  }, []);
+
   // User Authentication & CURMOVE Login State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('curmove_session_active') === 'true';
@@ -186,8 +261,14 @@ export default function App() {
     }
   }, [selectedDate, currentWorkout, selectedExerciseId]);
 
-  // Handler: update workout for student
+  // Handler: update workout for student (saves to Supabase in real-time)
   const handleUpdateWorkout = (updatedWorkout: DailyWorkout) => {
+    // 1. Save directly to Supabase with .upsert()
+    saveWorkout(activeStudent.id, updatedWorkout).catch((err) => {
+      console.warn('[Supabase] Error guardando workout en Supabase:', err);
+    });
+
+    // 2. Update local state
     setStudents((prev) =>
       prev.map((st) => {
         if (st.id === activeStudent.id) {
@@ -218,8 +299,10 @@ export default function App() {
 
   // Handler: save readiness logs (Energy, Fatigue, Soreness, Sleep, Mood, Notes)
   const handleSaveReadiness = async (date: string, data: DailyReadiness) => {
-    if (authUserId) {
-      try { await saveReadiness(authUserId, data); } catch (error) { console.error('[v0] Error guardando readiness:', error); }
+    try {
+      await saveReadiness(activeStudent.id, data);
+    } catch (error) {
+      console.error('[Supabase] Error guardando readiness:', error);
     }
     setStudents((prev) =>
       prev.map((st) => {
@@ -301,13 +384,12 @@ export default function App() {
       nutritionNotes: existingReadiness?.nutritionNotes
     };
 
-    if (authUserId) {
-      try {
-        await saveWorkout(authUserId, completedWorkout);
-        await saveReadiness(authUserId, updatedReadiness);
-      } catch (error) {
-        console.error('[v0] Error guardando sesión:', error);
-      }
+    // Save session directly to Supabase with .upsert()
+    try {
+      await saveWorkout(activeStudent.id, completedWorkout);
+      await saveReadiness(activeStudent.id, updatedReadiness);
+    } catch (error) {
+      console.error('[Supabase] Error guardando sesión:', error);
     }
 
     // 3. Update student state
@@ -333,8 +415,10 @@ export default function App() {
 
   // Handler: add anthropometry evaluation
   const handleAddAnthropometryRecord = async (record: AnthropometryRecord) => {
-    if (authUserId) {
-      try { await saveAnthropometry(authUserId, record); } catch (error) { console.error('[v0] Error guardando antropometría:', error); }
+    try { 
+      await saveAnthropometry(activeStudent.id, record); 
+    } catch (error) { 
+      console.error('[Supabase] Error guardando antropometría:', error); 
     }
     setStudents((prev) =>
       prev.map((st) => {
@@ -351,21 +435,30 @@ export default function App() {
   };
 
   // Handler: update student profile
-  const handleUpdateStudent = (updatedStudent: StudentProfile) => {
+  const handleUpdateStudent = async (updatedStudent: StudentProfile) => {
+    try {
+      await updateStudentInSupabase(updatedStudent);
+    } catch (error) {
+      console.error('[Supabase] Error actualizando perfil de alumno:', error);
+    }
     setStudents((prev) =>
       prev.map((st) => (st.id === updatedStudent.id ? updatedStudent : st))
     );
   };
 
-  // Handler: add new student
+  // Handler: add new student (1. .insert() en tabla de alumnos de Supabase y carga con .select())
   const handleAddStudent = async (newStudent: StudentProfile) => {
-    if (authUserId && supabase) {
-      try {
-        await saveCoachStudent(authUserId, newStudent);
-      } catch (error) {
-        console.error('[v0] Error guardando alumno:', error);
+    try {
+      const refreshedList = await insertNewStudent(newStudent);
+      if (refreshedList && refreshedList.length > 0) {
+        setStudents(refreshedList);
+        setActiveStudentId(newStudent.id);
+        return;
       }
+    } catch (error) {
+      console.error('[Supabase] Error insertando alumno:', error);
     }
+
     setStudents((prev) => prev.some((student) => student.id === newStudent.id)
       ? prev.map((student) => student.id === newStudent.id ? newStudent : student)
       : [...prev, newStudent]);
@@ -382,18 +475,33 @@ export default function App() {
     }
   };
 
-  // Exercise Database Handlers
-  const handleAddCustomExercise = (newEx: ExerciseDbEntry) => {
+  // Exercise Database Handlers - Direct Supabase .insert() / .upsert()
+  const handleAddCustomExercise = async (newEx: ExerciseDbEntry) => {
+    try {
+      await saveExerciseToSupabase(newEx);
+    } catch (error) {
+      console.error('[Supabase] Error guardando ejercicio:', error);
+    }
     setExerciseDb((prev) => [newEx, ...prev]);
   };
 
-  const handleUpdateCustomExercise = (updatedEx: ExerciseDbEntry) => {
+  const handleUpdateCustomExercise = async (updatedEx: ExerciseDbEntry) => {
+    try {
+      await saveExerciseToSupabase(updatedEx);
+    } catch (error) {
+      console.error('[Supabase] Error actualizando ejercicio:', error);
+    }
     setExerciseDb((prev) =>
       prev.map((e) => (e.id === updatedEx.id ? updatedEx : e))
     );
   };
 
-  const handleDeleteCustomExercise = (id: string) => {
+  const handleDeleteCustomExercise = async (id: string) => {
+    try {
+      await deleteExerciseFromSupabase(id);
+    } catch (error) {
+      console.error('[Supabase] Error eliminando ejercicio:', error);
+    }
     setExerciseDb((prev) => prev.filter((e) => e.id !== id));
   };
 
